@@ -4,3 +4,5 @@ solara
 pandas
 plotly
 ipyleaflet
+starlette==0.36.3
+numpy<2.0.0
