@@ -1,6 +1,5 @@
 ---
 title: Forest Trend Mapper
-emoji: 🌲
 colorFrom: green
 colorTo: blue
 sdk: docker
