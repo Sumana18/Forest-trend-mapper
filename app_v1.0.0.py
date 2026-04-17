@@ -457,7 +457,7 @@ def TimeSeriesChart():
                 title=None              
             ),
         )
-        solara.FigurePlotly(fig,dependencies=[fig], config={"responsive": True})
+        solara.FigurePlotly(fig,dependencies=[fig])
 
         solara.HTML(tag="hr", style="margin: 20px 0; border: 0; border-top: 1px solid #ddd;")
 
@@ -499,7 +499,7 @@ def TimeSeriesChart():
             plot_bgcolor='rgba(0,0,0,0)',
             margin=dict(l=70, r=70, t=50, b=80)
         )
-        solara.FigurePlotly(fig_clim,dependencies=[fig_clim], config={"responsive": True})
+        solara.FigurePlotly(fig_clim,dependencies=[fig_clim])
     
         solara.HTML(tag="hr", style="margin: 20px 0; border: 0; border-top: 1px solid #ddd;")
 
