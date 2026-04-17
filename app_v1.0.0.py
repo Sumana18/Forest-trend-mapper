@@ -118,14 +118,17 @@ def get_landsat_jja(roi, start_year, end_year):
     start = ee.Date.fromYMD(start_year, 1, 1)
     end = ee.Date.fromYMD(end_year, 12, 31)
     
-   
-    l9 = ee.ImageCollection("LANDSAT/LC09/C02/T1_L2").filterBounds(roi).filterDate(start, end).map(prep_oli)
-    l8 = ee.ImageCollection("LANDSAT/LC08/C02/T1_L2").filterBounds(roi).filterDate(start, end).map(prep_oli)
-    l7 = ee.ImageCollection("LANDSAT/LE07/C02/T1_L2").filterBounds(roi).filterDate(start, end).map(prep_etm)
-    l5 = ee.ImageCollection("LANDSAT/LT05/C02/T1_L2").filterBounds(roi).filterDate(start, end).map(prep_etm)
+    # Define the summer filter first!
+    summer_filter = ee.Filter.calendarRange(6, 8, 'month')
     
-    return l9.merge(l8).merge(l7).merge(l5).filter(ee.Filter.calendarRange(6, 8, 'month'))
-
+    # Apply the summer filter BEFORE calling .map(prep_oli) to avoid winter crashes
+    l9 = ee.ImageCollection("LANDSAT/LC09/C02/T1_L2").filterBounds(roi).filterDate(start, end).filter(summer_filter).map(prep_oli)
+    l8 = ee.ImageCollection("LANDSAT/LC08/C02/T1_L2").filterBounds(roi).filterDate(start, end).filter(summer_filter).map(prep_oli)
+    l7 = ee.ImageCollection("LANDSAT/LE07/C02/T1_L2").filterBounds(roi).filterDate(start, end).filter(summer_filter).map(prep_etm)
+    l5 = ee.ImageCollection("LANDSAT/LT05/C02/T1_L2").filterBounds(roi).filterDate(start, end).filter(summer_filter).map(prep_etm)
+    
+    return l9.merge(l8).merge(l7).merge(l5)
+    
 def get_annual_composites(col, roi, start_year, end_year, reducer_type):
     years = ee.List.sequence(start_year, end_year)
     
@@ -143,10 +146,16 @@ def get_annual_composites(col, roi, start_year, end_year, reducer_type):
         empty = ee.Image([0, 0, 0]).rename(['NDVI', 'NBR', 'NDMI']).updateMask(ee.Image(0))
         
         # Handling the reducer type (median vs max)
+        if reducer_type == 'median':
+            reduced_yc = yc.median()
+        elif reducer_type == 'mean':
+            reduced_yc = yc.mean()
+        else:
+            reduced_yc = yc.max()
+
         veg_comp = ee.Image(ee.Algorithms.If(
             yc.size().gt(0), 
-            ee.Image(ee.Algorithms.If(reducer_type == 'median', yc.median(), 
-                 ee.Algorithms.If(reducer_type == 'mean', yc.mean(), yc.max()))),
+            reduced_yc,
             empty
         )).rename(['NDVI', 'NBR', 'NDMI']).clip(roi)
 
