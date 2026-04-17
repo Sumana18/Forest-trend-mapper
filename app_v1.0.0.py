@@ -482,8 +482,8 @@ def TimeSeriesChart():
             title=f"{v_idx} vs {State.climate_var.value}",
             font=dict(family="Roboto, Helvetica, Arial, sans-serif", size=12),
             xaxis =dict(showgrid=False),
-            yaxis=dict(title=v_idx, titlefont=dict(color="#4CAF50"), tickfont=dict(color="#4CAF50"),showgrid=True),
-            yaxis2=dict(title=State.climate_var.value, overlaying="y", side="right", titlefont=dict(color="#F44336"), tickfont=dict(color="#F44336"),showgrid=True, tickmode="sync"),
+            yaxis=dict(title=v_idx, title_font=dict(color="#4CAF50"), tickfont=dict(color="#4CAF50"),showgrid=True),
+            yaxis2=dict(title=State.climate_var.value, overlaying="y", side="right", title_font=dict(color="#F44336"), tickfont=dict(color="#F44336"),showgrid=True, tickmode="sync"),
             legend=dict(
                 orientation="h",        
                 yanchor="top",
