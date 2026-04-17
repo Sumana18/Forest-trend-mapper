@@ -4,6 +4,8 @@ FROM python:3.10
 RUN useradd -m -u 1000 user
 USER user
 ENV PATH="/home/user/.local/bin:$PATH"
+ENV UVICORN_PROXY_HEADERS=1
+ENV FORWARDED_ALLOW_IPS="*"
 
 WORKDIR /app
 COPY --chown=user requirements.txt .
