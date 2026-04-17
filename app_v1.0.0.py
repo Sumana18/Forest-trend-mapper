@@ -673,6 +673,7 @@ def Page():
         m = geemap.Map(center=[64.2008, -149.4937], zoom=4)
         m.layout.height = "650px"
         m.add_control(FullScreenControl())
+        m.lite_mode = True
         return m
 
     m = solara.use_memo(init_map, [])
