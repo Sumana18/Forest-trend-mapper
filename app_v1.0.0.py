@@ -497,7 +497,7 @@ def TimeSeriesChart():
             height=280,
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            margin=dict(l=50, r=50, t=40, b=80)
+            margin=dict(l=60, r=60, t=50, b=70)
         )
         solara.FigurePlotly(fig_clim)
     
@@ -672,6 +672,8 @@ def Page():
 
     # Map Initialization (Memoized to prevent flickering)
     def init_map():
+        draw_ctrl= True,
+        toolbar_ctrl= False,
         m = geemap.Map(center=[64.2008, -149.4937], zoom=5)
         m.layout.height = "650px"
         m.add_control(FullScreenControl())
