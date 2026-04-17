@@ -442,7 +442,7 @@ def TimeSeriesChart():
         fig.update_layout(
             autosize = True,
             font=dict(family="Roboto, Helvetica, Arial, sans-serif", size=12),
-            xaxis = dict(title = "Year",showgrid=False,autorange = True),
+            xaxis = dict(title = "Year",showgrid=False,range=[df['year'].min(), df['year'].max()]),
             yaxis = dict(title = "Index Value",showgrid=True, autorange = True),
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
@@ -483,7 +483,7 @@ def TimeSeriesChart():
             autosize = True,
             title=f"{v_idx} vs {State.climate_var.value}",
             font=dict(family="Roboto, Helvetica, Arial, sans-serif", size=12),
-            xaxis =dict(showgrid=False, autorange = True),
+            xaxis =dict(showgrid=False, range=[df['year'].min(), df['year'].max()]),
             yaxis=dict(title=v_idx, title_font=dict(color="#4CAF50"), tickfont=dict(color="#4CAF50"),showgrid=True,autorange = True),
             yaxis2=dict(title=State.climate_var.value, overlaying="y", side="right", title_font=dict(color="#F44336"), tickfont=dict(color="#F44336"),showgrid=True, tickmode="sync",autorange = True),
             legend=dict(
@@ -683,8 +683,6 @@ def Page():
         m = geemap.Map(
             center=[64.2008, -149.4937],
             zoom=5,
-            draw_ctrl=True,
-            toolbar_ctrl=False
         )
         m.layout.height = "650px"
         m.add_control(FullScreenControl())
