@@ -302,8 +302,8 @@ def run_analysis(m):
                 m.add_layer(slope.updateMask(sig_mask).clip(roi), slope_vis, 'Significant Slope', False)
             
             # Use the safe vis_params syntax for colorbars
-            m.add_colorbar(vis_params=tau_vis, label="Kendall τ", layer_name="Tau Legend", position="bottomright")
-            m.add_colorbar(vis_params=slope_vis, label="Sen Slope", layer_name="Slope Legend", position="bottomright")
+            m.add_colorbar(vis_params=tau_vis, label="Kendall τ", layer_name="Tau Legend", position="bottomleft")
+            m.add_colorbar(vis_params=slope_vis, label="Sen Slope", layer_name="Slope Legend", position="bottomleft")
             
             if State.show_mtbs.value:
                 mtbs = ee.FeatureCollection('USFS/GTAC/MTBS/burned_area_boundaries/v1').filterBounds(roi)
@@ -457,7 +457,7 @@ def TimeSeriesChart():
                 title=None              
             ),
         )
-        solara.FigurePlotly(fig)
+        solara.FigurePlotly(fig,dependencies=[fig], config={"responsive": True})
 
         solara.HTML(tag="hr", style="margin: 20px 0; border: 0; border-top: 1px solid #ddd;")
 
@@ -499,7 +499,7 @@ def TimeSeriesChart():
             plot_bgcolor='rgba(0,0,0,0)',
             margin=dict(l=70, r=70, t=50, b=80)
         )
-        solara.FigurePlotly(fig_clim)
+        solara.FigurePlotly(fig_clim,dependencies=[fig_clim], config={"responsive": True})
     
         solara.HTML(tag="hr", style="margin: 20px 0; border: 0; border-top: 1px solid #ddd;")
 
@@ -639,6 +639,14 @@ def Page():
     solara.Style("""
         .leaflet-container {
             z-index: 1 !important;
+        }
+        /* Prevents Hugging Face iframes from hiding legend text */
+        .leaflet-control {
+            max-width: none !important;
+            overflow: visible !important;
+        }
+        .widget-html, .widget-html-content {
+            overflow: visible !important;
         }
     """)
     # This hidden tool syncs the entire app's CSS (Sidebar, Cards, etc.)
