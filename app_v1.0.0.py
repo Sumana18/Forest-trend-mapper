@@ -302,8 +302,8 @@ def run_analysis(m):
                 m.add_layer(slope.updateMask(sig_mask).clip(roi), slope_vis, 'Significant Slope', False)
             
             # Use the safe vis_params syntax for colorbars
-            m.add_colorbar(vis_params=tau_vis, label="Kendall τ", layer_name="Tau Legend")
-            m.add_colorbar(vis_params=slope_vis, label="Sen Slope", layer_name="Slope Legend")
+            m.add_colorbar(vis_params=tau_vis, label="Kendall τ", layer_name="Tau Legend", position="bottomright", transparent_bg=False)
+            m.add_colorbar(vis_params=slope_vis, label="Sen Slope", layer_name="Slope Legend", position="bottomleft", transparent_bg=False)
         
             if State.show_mtbs.value:
                 mtbs = ee.FeatureCollection('USFS/GTAC/MTBS/burned_area_boundaries/v1').filterBounds(roi)
@@ -440,17 +440,18 @@ def TimeSeriesChart():
         
         # Make the chart background transparent to show the Card's color
         fig.update_layout(
+            autosize = True
             font=dict(family="Roboto, Helvetica, Arial, sans-serif", size=12),
             xaxis = dict(title = "Year",showgrid=False),
             yaxis = dict(title = "Index Value",showgrid=True),
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            margin=dict(l=10, r=10, t=50, b=10),
-            height=250,
+            margin=dict(l=50, r=20, t=40, b=80),
+            height=280,
             legend=dict(
                 orientation="h",        
                 yanchor="top",
-                y=-0.55,                
+                y=-0.4,                
                 xanchor="center",
                 x=0.5,
                 title=None              
@@ -479,6 +480,7 @@ def TimeSeriesChart():
         fig_clim.add_trace(go.Scatter(x=df['year'], y=df[c_band], name="Climate Variable", yaxis="y2", line=dict(color='#F44336', dash='dot')))
 
         fig_clim.update_layout(
+            autosize = True
             title=f"{v_idx} vs {State.climate_var.value}",
             font=dict(family="Roboto, Helvetica, Arial, sans-serif", size=12),
             xaxis =dict(showgrid=False),
@@ -492,10 +494,10 @@ def TimeSeriesChart():
                 x=0.5
             ),
             template=template,
-            height=250,
+            height=280,
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            margin=dict(l=10, r=10, t=50, b=10)
+            margin=dict(l=50, r=50, t=40, b=80)
         )
         solara.FigurePlotly(fig_clim)
     
