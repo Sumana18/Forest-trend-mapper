@@ -431,7 +431,7 @@ def TimeSeriesChart():
         
         df = State.point_df.value
         if df is None or df.empty:
-            return solara.Info("Click a point on the map after running analysis to view trends.")
+            return solara.Info("Click a point on the map after running analysis to view time-series plots.")
     
         if State.fire_info.value:
             solara.Markdown(f"**Location History:** {State.fire_info.value}", style={"color": "#ff5252", "font-weight": "bold"})
@@ -670,7 +670,7 @@ def Page():
 
     # Map Initialization (Memoized to prevent flickering)
     def init_map():
-        m = geemap.Map(center=[64.2008, -149.4937], zoom=6)
+        m = geemap.Map(center=[64.2008, -149.4937], zoom=5)
         m.layout.height = "650px"
         m.add_control(FullScreenControl())
         m.lite_mode = True
