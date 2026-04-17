@@ -302,9 +302,9 @@ def run_analysis(m):
                 m.add_layer(slope.updateMask(sig_mask).clip(roi), slope_vis, 'Significant Slope', False)
             
             # Use the safe vis_params syntax for colorbars
-            m.add_colorbar(vis_params=tau_vis, label="Kendall τ", layer_name="Tau Legend", position="bottomright", transparent_bg=False)
-            m.add_colorbar(vis_params=slope_vis, label="Sen Slope", layer_name="Slope Legend", position="bottomleft", transparent_bg=False)
-        
+            m.add_colorbar(vis_params=tau_vis, label="Kendall τ", layer_name="Tau Legend", position="bottomright")
+            m.add_colorbar(vis_params=slope_vis, label="Sen Slope", layer_name="Slope Legend", position="bottomright")
+            
             if State.show_mtbs.value:
                 mtbs = ee.FeatureCollection('USFS/GTAC/MTBS/burned_area_boundaries/v1').filterBounds(roi)
                 m.add_layer(mtbs, {'color': 'darkgray'}, 'MTBS Fire Perimeters')
@@ -446,8 +446,8 @@ def TimeSeriesChart():
             yaxis = dict(title = "Index Value",showgrid=True),
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            margin=dict(l=50, r=20, t=40, b=80),
-            height=280,
+            margin=dict(l=70, r=20, t=40, b=80),
+            height=350,
             legend=dict(
                 orientation="h",        
                 yanchor="top",
@@ -494,10 +494,10 @@ def TimeSeriesChart():
                 x=0.5
             ),
             template=template,
-            height=280,
+            height=350,
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            margin=dict(l=60, r=60, t=50, b=70)
+            margin=dict(l=70, r=70, t=50, b=80)
         )
         solara.FigurePlotly(fig_clim)
     
@@ -672,9 +672,12 @@ def Page():
 
     # Map Initialization (Memoized to prevent flickering)
     def init_map():
-        draw_ctrl= True,
-        toolbar_ctrl= False,
-        m = geemap.Map(center=[64.2008, -149.4937], zoom=5)
+        m = geemap.Map(
+            center=[64.2008, -149.4937],
+            zoom=5,
+            draw_ctrl=True,
+            toolbar_ctrl=False
+        )
         m.layout.height = "650px"
         m.add_control(FullScreenControl())
         m.lite_mode = True
