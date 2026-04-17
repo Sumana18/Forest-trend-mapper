@@ -670,7 +670,7 @@ def Page():
 
     # Map Initialization (Memoized to prevent flickering)
     def init_map():
-        m = geemap.Map(center=[64.2008, -149.4937], zoom=4)
+        m = geemap.Map(center=[64.2008, -149.4937], zoom=6)
         m.layout.height = "650px"
         m.add_control(FullScreenControl())
         m.lite_mode = True
