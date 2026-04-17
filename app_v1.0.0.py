@@ -440,7 +440,7 @@ def TimeSeriesChart():
         
         # Make the chart background transparent to show the Card's color
         fig.update_layout(
-            autosize = True
+            autosize = True,
             font=dict(family="Roboto, Helvetica, Arial, sans-serif", size=12),
             xaxis = dict(title = "Year",showgrid=False),
             yaxis = dict(title = "Index Value",showgrid=True),
@@ -480,7 +480,7 @@ def TimeSeriesChart():
         fig_clim.add_trace(go.Scatter(x=df['year'], y=df[c_band], name="Climate Variable", yaxis="y2", line=dict(color='#F44336', dash='dot')))
 
         fig_clim.update_layout(
-            autosize = True
+            autosize = True,
             title=f"{v_idx} vs {State.climate_var.value}",
             font=dict(family="Roboto, Helvetica, Arial, sans-serif", size=12),
             xaxis =dict(showgrid=False),
