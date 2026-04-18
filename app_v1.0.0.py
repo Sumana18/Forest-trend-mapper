@@ -334,7 +334,7 @@ def run_analysis(m):
             if State.show_ak_fire.value:
                 ak_fire = ee.FeatureCollection("projects/ee-ssahoo2/assets/AK_fire_history").filterBounds(roi)
                 m.add_layer(ak_fire, {'color': "gray"}, 'AK Fire History (Asset)') # Dark Orange
-            m.centerObject(roi, 10)
+            m.centerObject(roi, 7)
             
         except Exception as e:
             # PUSH the error directly to the web page so we can see it!
