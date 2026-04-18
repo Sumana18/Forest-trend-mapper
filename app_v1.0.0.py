@@ -324,8 +324,8 @@ def run_analysis(m):
             
             # Use the safe vis_params syntax for colorbars
             
-            m.add_colorbar(vis_params=slope_vis, label="Sen Slope", layer_name="Slope Legend", position="bottomleft", width=2.0)
-            m.add_colorbar(vis_params=tau_vis, label="Kendall τ", layer_name="Tau Legend", position="bottomleft", width=2.0)
+            m.add_colorbar(vis_params=slope_vis, label="Sen Slope", layer_name="Slope Legend", position="bottomleft")
+            m.add_colorbar(vis_params=tau_vis, label="Kendall τ", layer_name="Tau Legend", position="bottomleft")
             
             if State.show_mtbs.value:
                 mtbs = ee.FeatureCollection('USFS/GTAC/MTBS/burned_area_boundaries/v1').filterBounds(roi)
