@@ -196,25 +196,37 @@ def fetch_point_data(coords):
             geom = ee.Geometry.Point(coords[::-1])
 
             try:
-                fires = ee.FeatureCollection('USFS/GTAC/MTBS/burned_area_boundaries/v1')
-                intersecting = fires.filterBounds(geom).getInfo().get('features', [])
+                fire_names = []
                 
-                if intersecting:
-                    fire_names = []
-                    for f in intersecting:
-                        props = f.get('properties', {})
-                        # MTBS uses 'Incid_Name' for the fire name and 'Ig_Date' for the ignition date
-                        name = props.get('Incid_Name', 'Unknown').title()
-                        date = props.get('Ig_Date')
-                        if date:
-                            year = str(pd.to_datetime(date, unit='ms').year)
-                        else:
-                            year = "Unknown Year"
-
-                        fire_names.append(f"{name} Fire ({year})")
+                # 1. Check MTBS (National dataset)
+                mtbs = ee.FeatureCollection('USFS/GTAC/MTBS/burned_area_boundaries/v1')
+                mtbs_intersect = mtbs.filterBounds(geom).select(['Incid_Name', 'Ig_Date'], retainGeometry=False).getInfo().get('features', [])
+                
+                for f in mtbs_intersect:
+                    props = f.get('properties', {})
+                    name = props.get('Incid_Name', 'Unknown').title()
+                    date = props.get('Ig_Date')
+                    year = str(pd.to_datetime(date, unit='ms').year) if date else "Unknown Year"
+                    fire_names.append(f"{name} (MTBS, {year})")
+                
+                # 2. Check AK Fire History (State dataset)
+                ak_fires = ee.FeatureCollection("projects/ee-ssahoo2/assets/AK_fire_history")
+                ak_intersect = ak_fires.filterBounds(geom).select(['NAME', 'FIREYEAR'], retainGeometry=False).getInfo().get('features', [])
+                
+                for f in ak_intersect:
+                    props = f.get('properties', {})
+                    name = str(props.get('NAME', 'Unnamed')).title()
+                    year = str(props.get('FIREYEAR', 'Unknown Year'))
+                    fire_names.append(f"{name} (AK Fire, {year})")
+                
+                # Update UI: use a set() to remove exact duplicates if both datasets recorded it
+                if fire_names:
+                    # Remove duplicates but preserve order roughly
+                    unique_fires = list(dict.fromkeys(fire_names))
+                    State.fire_info.value = " | ".join(unique_fires)
+                else:
+                    State.fire_info.value = None
                     
-                    # Join them together in case overlapping fires exist at this point
-                    State.fire_info.value = " | ".join(fire_names)
             except Exception as e:
                 print(f"Fire check failed: {e}")
             
