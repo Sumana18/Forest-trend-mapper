@@ -470,11 +470,11 @@ def TimeSeriesChart():
         fig.update_layout(
             autosize = True,
             font=dict(family="Roboto, Helvetica, Arial, sans-serif", size=12),
-            xaxis = dict(title = "Year",showgrid=False),
-            yaxis = dict(title = "Index Value",showgrid=True),
+            xaxis = dict(title = "Year",showgrid=False, automargin=True),
+            yaxis = dict(title = "Index Value",showgrid=True, automargin=True),
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            margin=dict(l=70, r=20, t=40, b=80),
+            margin=dict(l=20, r=20, t=40, b=80),
             height=350,
             legend=dict(
                 orientation="h",        
@@ -511,9 +511,9 @@ def TimeSeriesChart():
             autosize = True,
             title=f"{v_idx} vs {State.climate_var.value}",
             font=dict(family="Roboto, Helvetica, Arial, sans-serif", size=12),
-            xaxis =dict(showgrid=False),
-            yaxis=dict(title=v_idx, title_font=dict(color="#4CAF50"), tickfont=dict(color="#4CAF50"),showgrid=True),
-            yaxis2=dict(title=State.climate_var.value, overlaying="y", side="right", title_font=dict(color="#F44336"), tickfont=dict(color="#F44336"),showgrid=True, tickmode="sync"),
+            xaxis =dict(showgrid=False, automargin=True),
+            yaxis=dict(title=v_idx, title_font=dict(color="#4CAF50"), tickfont=dict(color="#4CAF50"),showgrid=True, automargin=True),
+            yaxis2=dict(title=State.climate_var.value, overlaying="y", side="right", title_font=dict(color="#F44336"), tickfont=dict(color="#F44336"),showgrid=True, tickmode="sync",automargin=True),
             legend=dict(
                 orientation="h",        
                 yanchor="top",
@@ -525,7 +525,7 @@ def TimeSeriesChart():
             height=350,
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            margin=dict(l=70, r=70, t=50, b=80)
+            margin=dict(l=20, r=20, t=50, b=80)
         )
         solara.FigurePlotly(fig_clim,dependencies=[fig_clim])
     
