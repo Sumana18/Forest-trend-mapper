@@ -769,9 +769,7 @@ def Page():
                     solara.Markdown(r'''
                     [Source Code (GitHub)](https://github.com/Sumana18/Forest-trend-mapper) | [Original Paper (MDPI)](https://www.mdpi.com/1999-4907/16/5/777) | [Feedback Form](https://forms.gle/23woKHYHZbKMySNn8)
                     
-                    **Citations:**
-                    
-                    Application:
+                    To cite the application:
                                     
                     Journal Publication: Sahoo, S., et al. (2025). Interplay of Topography, Fire History, and Climate on Interior Alaska Boreal Forest Vegetation Dynamics. *Forests*, 16(5), 777.
                     ''')
