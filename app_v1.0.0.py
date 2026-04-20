@@ -711,6 +711,7 @@ def Page():
         m = geemap.Map(
             center=[64.2008, -149.4937],
             zoom=5,
+            ee_initialize=False
         )
         m.layout.height = "650px"
         m.add_control(FullScreenControl())
