@@ -713,7 +713,6 @@ def Page():
             zoom=5,
         )
         m.layout.height = "650px"
-        m.layout.width = "100%"
         m.add_control(FullScreenControl())
         m.lite_mode = True
         return m
