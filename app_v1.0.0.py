@@ -772,7 +772,7 @@ def Page():
                                         solara.v.Icon(children=["mdi-layers-outline"])
                                         solara.Text("on the map to check/uncheck layers and adjust transparency.")
                         with solara.v.Html(tag="div", style_="position: relative; z-index: 1; height: 650px; width: 100%;"):
-                        solara.display(m)
+                            solara.display(m)
 
                     # A subtle horizontal divider to separate map from text
                     solara.HTML(tag="hr", style="margin: 20px 0 15px 0; border: 0; border-top: 1px solid #444;")
