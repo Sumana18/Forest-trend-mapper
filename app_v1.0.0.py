@@ -72,6 +72,7 @@ class State:
     is_generating_urls = solara.reactive(False)
     show_info_modal = solara.reactive(False)
     show_map_help = solara.reactive(False)
+    analysis_complete = solara.reactive(False)
 
 
 #GEE functions
@@ -327,13 +328,18 @@ def run_analysis(m):
             m.add_colorbar(vis_params=slope_vis, label="Sen Slope", layer_name="Slope Legend", position="bottomleft")
             m.add_colorbar(vis_params=tau_vis, label="Kendall τ", layer_name="Tau Legend", position="bottomleft")
             
-            if State.show_mtbs.value:
-                mtbs = ee.FeatureCollection('USFS/GTAC/MTBS/burned_area_boundaries/v1').filterBounds(roi)
-                m.add_layer(mtbs, {'color': 'darkgray'}, 'MTBS Fire Perimeters')
+           
+            mtbs = ee.FeatureCollection('USFS/GTAC/MTBS/burned_area_boundaries/v1').filterBounds(roi)
+            mtbs_styled = mtbs.style(fillColor="#4d474735", color="#ea1212", width=2)
+            m.add_layer(mtbs_styled, {}, 'MTBS Fire Perimeters', shown=State.show_mtbs.value)
 
-            if State.show_ak_fire.value:
-                ak_fire = ee.FeatureCollection("projects/ee-ssahoo2/assets/AK_fire_history").filterBounds(roi)
-                m.add_layer(ak_fire, {'color': "gray"}, 'AK Fire History (Asset)') # Dark Orange
+           
+            ak_fire = ee.FeatureCollection("projects/ee-ssahoo2/assets/AK_fire_history").filterBounds(roi)
+            ak_styled = ak_fire.style(fillColor="#e600ff1f", color="#a70f95", width=2) 
+            m.add_layer(ak_styled, {}, 'AK Fire History', shown=State.show_ak_fire.value)
+
+
+            State.analysis_complete.value = True    
             m.centerObject(roi, 7)
             
         except Exception as e:
@@ -464,8 +470,8 @@ def TimeSeriesChart():
         fig.update_layout(
             autosize = True,
             font=dict(family="Roboto, Helvetica, Arial, sans-serif", size=12),
-            xaxis = dict(title = "Year",showgrid=False,range=[df['year'].min(), df['year'].max()]),
-            yaxis = dict(title = "Index Value",showgrid=True, autorange = True),
+            xaxis = dict(title = "Year",showgrid=False),
+            yaxis = dict(title = "Index Value",showgrid=True),
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
             margin=dict(l=70, r=20, t=40, b=80),
@@ -505,9 +511,9 @@ def TimeSeriesChart():
             autosize = True,
             title=f"{v_idx} vs {State.climate_var.value}",
             font=dict(family="Roboto, Helvetica, Arial, sans-serif", size=12),
-            xaxis =dict(showgrid=False, range=[df['year'].min(), df['year'].max()]),
-            yaxis=dict(title=v_idx, title_font=dict(color="#4CAF50"), tickfont=dict(color="#4CAF50"),showgrid=True,autorange = True),
-            yaxis2=dict(title=State.climate_var.value, overlaying="y", side="right", title_font=dict(color="#F44336"), tickfont=dict(color="#F44336"),showgrid=True, tickmode="sync",autorange = True),
+            xaxis =dict(showgrid=False),
+            yaxis=dict(title=v_idx, title_font=dict(color="#4CAF50"), tickfont=dict(color="#4CAF50"),showgrid=True),
+            yaxis2=dict(title=State.climate_var.value, overlaying="y", side="right", title_font=dict(color="#F44336"), tickfont=dict(color="#F44336"),showgrid=True, tickmode="sync"),
             legend=dict(
                 orientation="h",        
                 yanchor="top",
@@ -758,6 +764,12 @@ def Page():
                     
                     # The Map Container
                     with solara.v.Html(tag="div", style_="position: relative; z-index: 1;"):
+                        if State.analysis_complete.value:
+                            with solara.Success():
+                                with solara.Row(style={"align-items": "center", "gap": "5px"}):
+                                        solara.Text("💡 Tip: Use the Layers button")
+                                        solara.v.Icon(children=["mdi-layers-outline"])
+                                        solara.Text("on the map to check/uncheck layers and adjust transparency.")
                         solara.display(m)
 
                     # A subtle horizontal divider to separate map from text
