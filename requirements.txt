@@ -6,3 +6,6 @@ plotly
 ipyleaflet
 starlette==0.36.3
 numpy<2.0.0
+wsproto>=1.2.0
+uvicorn>=0.23.2
+websockets>=11.0.3
