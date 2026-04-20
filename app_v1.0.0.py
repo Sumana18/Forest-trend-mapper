@@ -713,6 +713,7 @@ def Page():
             zoom=5,
         )
         m.layout.height = "650px"
+        m.layout.width = "100%"
         m.add_control(FullScreenControl())
         m.lite_mode = True
         return m
@@ -770,6 +771,7 @@ def Page():
                                         solara.Text("💡 Tip: Use the Layers button")
                                         solara.v.Icon(children=["mdi-layers-outline"])
                                         solara.Text("on the map to check/uncheck layers and adjust transparency.")
+                        with solara.v.Html(tag="div", style_="position: relative; z-index: 1; height: 650px; width: 100%;"):
                         solara.display(m)
 
                     # A subtle horizontal divider to separate map from text
