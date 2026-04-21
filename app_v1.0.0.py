@@ -788,5 +788,5 @@ def Page():
                     ''')
 
             
-            with solara.VBox():
+            with solara.Column():
                 TimeSeriesChart()
