@@ -340,7 +340,7 @@ def run_analysis(m):
 
 
             State.analysis_complete.value = True    
-            m.centerObject(roi, 7)
+            m.centerObject(roi, 8)
             
         except Exception as e:
             # PUSH the error directly to the web page so we can see it!
@@ -710,7 +710,7 @@ def Page():
     def init_map():
         m = geemap.Map(
             center=[64.2008, -149.4937],
-            zoom=6,
+            zoom=5,
         )
         m.layout.height = "650px"
         m.add_control(FullScreenControl())
