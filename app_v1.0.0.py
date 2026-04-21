@@ -351,7 +351,7 @@ def run_analysis(m,state):
 
 
             state.analysis_complete.value = True    
-            m.centerObject(roi, 7)
+            m.centerObject(roi, 8)
             
         except Exception as e:
             # PUSH the error directly to the web page so we can see it!
@@ -463,7 +463,7 @@ def TimeSeriesChart(state):
     bg_color = "#1e1e1e" if state.dark_mode.value else "#ffffff"
     template = "plotly_dark" if state.dark_mode.value else "plotly_white"
 
-    with solara.Card(style={"background-color": bg_color, "margin-bottom": "20px"}):
+    with solara.Card(style={"background-color": bg_color, "margin-bottom": "20px", "width": "100%", "min-width": "0"}):
         solara.Text("Time-series Plots", style={"font-size": "24px", "font-weight": "bold", "color": "#2fa4da"})
         if state.is_fetching_point.value:
             return solara.Info("Fetching time series data from Earth Engine...", icon="mdi-cloud-download")
@@ -688,6 +688,11 @@ def Page():
         .widget-html, .widget-html-content {
             overflow: visible !important;
         }
+        
+        /* NEW: Plotly Autoscaling Fix */
+        .js-plotly-plot, .plot-container, .svg-container {
+            width: 100% !important;
+        }
     """)
     # This hidden tool syncs the entire app's CSS (Sidebar, Cards, etc.)
     def sync_theme():
@@ -801,5 +806,6 @@ def Page():
                     ''')
 
             
-            with solara.VBox():
-                TimeSeriesChart(state)
+            with solara.Column():
+                with solara.v.Html(tag="div", style_="width: 100%; min-width: 0;"):
+                    TimeSeriesChart(state)
