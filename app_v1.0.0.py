@@ -10,6 +10,8 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import threading
+import importlib
+import geemap.toolbar
 import solara.lab
 from ipyleaflet import FullScreenControl
 
@@ -747,9 +749,14 @@ def Page():
 
     # Map Initialization (Memoized to prevent flickering)
     def init_map():
+        importlib.reload(geemap.toolbar)
+
         m = geemap.Map(
             center=[64.2008, -149.4937],
             zoom=5,
+            draw_ctrl=True,
+            toolbar_ctrl=True,
+            data_ctrl=False
         )
         m.layout.height = "600px"
         m.layout.width = "100%"
