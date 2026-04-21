@@ -680,7 +680,6 @@ def Page():
     state = solara.use_memo(lambda: Sessionstate(), [])
 
     solara.Style("""
-
         /* Keep Map controls above the base layer */
         .leaflet-container {
             z-index: 1 !important;
@@ -751,7 +750,7 @@ def Page():
             center=[64.2008, -149.4937],
             zoom=5,
         )
-        m.layout.height = "700px"
+        m.layout.height = "600px"
         m.layout.width = "100%"
         m.add_control(FullScreenControl())
         m.lite_mode = True
@@ -793,7 +792,7 @@ def Page():
                     
                     Additional support was received from the **Troth Yeddha' University of Alaska Fairbanks** PhD Fellowship.
                     ''')
-            with solara.v.Html(tag="div", style_="flex: 2 1 500px; min-width: 350px;"):
+            with solara.v.Html(tag="div", style_="flex: 2.4 1 600px; min-width: 400px;"):
                 with solara.Card(style={"margin-top": "10px", "margin-bottom": "10px"}):
                     # Map Header
                     with solara.Row(justify="space-between", style={"align-items": "center", "margin-bottom": "5px"}):
@@ -815,7 +814,7 @@ def Page():
                                         solara.Text("💡 Tip: Use the Layers button")
                                         solara.v.Icon(children=["mdi-layers-outline"])
                                         solara.Text("on the map to check/uncheck layers and adjust transparency.")
-                        with solara.v.Html(tag="div", style_="position: relative; z-index: 1; height: 650px; width: 100%;"):
+                        with solara.v.Html(tag="div", style_="position: relative; z-index: 1; height: 600px; width: 100%; overflow: hidden; margin-bottom: 20px; border-radius: 4px;"):
                             solara.display(m)
 
                     # A subtle horizontal divider to separate map from text
@@ -833,6 +832,6 @@ def Page():
                     ''')
 
             
-            with solara.v.Html(tag="div", style_="flex: 1.5 1 400px; min-width: 300px; min-width: 0;"):
+            with solara.v.Html(tag="div", style_="flex: 1.2 1 350px; min-width: 300px;"):
                 with solara.v.Html(tag="div", style_="width: 100%; min-width: 0;"):
                     TimeSeriesChart(state)
