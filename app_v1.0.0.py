@@ -681,9 +681,6 @@ def Page():
 
     solara.Style("""
 
-        body {
-                zoom: 0.85; 
-            }
         /* Keep Map controls above the base layer */
         .leaflet-container {
             z-index: 1 !important;
@@ -754,7 +751,7 @@ def Page():
             center=[64.2008, -149.4937],
             zoom=5,
         )
-        m.layout.height = "650px"
+        m.layout.height = "700px"
         m.layout.width = "100%"
         m.add_control(FullScreenControl())
         m.lite_mode = True
