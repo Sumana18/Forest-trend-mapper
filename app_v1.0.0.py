@@ -439,10 +439,13 @@ def TrendMapperUI(m,state):
         
         solara.Checkbox(label="Apply Significance Masking (p ≤ 0.05)", value=state.apply_sig_mask)
         
-        with solara.Row(style={"align-items": "center", "margin-bottom": "15px", "flex-wrap": "wrap", "gap": "10px"}):
-            solara.Text("Fire Overlays:", style={"font-weight": "regular", "margin-right": "5px"})
-            solara.Checkbox(label="MTBS (USA)", value=state.show_mtbs)
-            solara.Checkbox(label="AK History (Alaska)", value=state.show_ak_fire)
+        with solara.Column(style={"margin-bottom": "15px", "gap": "5px"}):
+            solara.Text("Fire Overlays:", style={"font-weight": "bold"})
+            
+            # This puts the checkboxes cleanly underneath with a nice indent
+            with solara.Row(style={"flex-wrap": "wrap", "gap": "15px", "margin-left": "10px"}):
+                solara.Checkbox(label="MTBS (USA)", value=state.show_mtbs)
+                solara.Checkbox(label="AK History (Alaska)", value=state.show_ak_fire)
 
         # Show the error message if one exists
         if state.error_msg.value:
@@ -772,8 +775,13 @@ def Page():
 
     # Main Dashboard Content
     with solara.v.Html(tag="div", style_="margin-top: -60px;"):
-        with solara.Columns([1,2,1.5]):
-            with solara.Column():
+        
+        # 1. THE FLEX CONTAINER (Replaces solara.Columns)
+        with solara.v.Html(tag="div", style_="display: flex; flex-wrap: wrap; gap: 20px; width: 100%; align-items: flex-start;"):
+            
+            # 2. COLUMN 1: Controls (Replaces the first solara.Column)
+            # flex: 1 1 300px mimics the "1" in your [1,2,1.5] setup, but ensures it never gets smaller than 300px
+            with solara.v.Html(tag="div", style_="flex: 1 1 300px; min-width: 300px;"):
             
                 TrendMapperUI(m,state)
                 MapDownloader(state)
@@ -784,9 +792,8 @@ def Page():
                     
                     Additional support was received from the **Troth Yeddha' University of Alaska Fairbanks** PhD Fellowship.
                     ''')
-            with solara.Column():
+            with solara.v.Html(tag="div", style_="flex: 2 1 500px; min-width: 350px;"):
                 with solara.Card(style={"margin-top": "10px", "margin-bottom": "10px"}):
-                    
                     # Map Header
                     with solara.Row(justify="space-between", style={"align-items": "center", "margin-bottom": "5px"}):
                         solara.Text("Display Map", style={"font-size":"24px","font-weight":"bold" ,"color": "#2fa4da"})
@@ -825,6 +832,6 @@ def Page():
                     ''')
 
             
-            with solara.Column():
+            with solara.v.Html(tag="div", style_="flex: 1.5 1 400px; min-width: 300px; min-width: 0;"):
                 with solara.v.Html(tag="div", style_="width: 100%; min-width: 0;"):
                     TimeSeriesChart(state)
