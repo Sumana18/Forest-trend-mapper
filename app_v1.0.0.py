@@ -683,37 +683,21 @@ def Page():
     state = solara.use_memo(lambda: Sessionstate(), [])
 
     solara.Style("""
-        /* Keep Map controls above the base layer */
+        /* FIX: Allow legends to "float" outside the map container boundaries */
         .leaflet-container {
             z-index: 1 !important;
+            overflow: visible !important; 
         }
         
-        /* Prevent Hugging Face iframes from hiding elements */
-        .leaflet-control {
-            max-width: none !important;
-            overflow: visible !important;
+        /* FIX: Ensure the legend control is always on top */
+        .leaflet-control-container {
+            z-index: 1000 !important;
         }
-        .widget-html, .widget-html-content {
-            overflow: visible !important;
-        }
-        
-        /* Force Plotly containers to fill exactly their available width */
-        .js-plotly-plot, .plot-container, .svg-container {
-            width: 100% !important;
-        }
-        
-        /* NEW: Media Query for smaller screens (Laptops, Tablets, Phones) */
+
+        /* Keep your existing scaling logic for small screens */
         @media (max-width: 1200px) {
-            /* Scale down Leaflet legends so they don't get pushed off screen */
             .leaflet-bottom.leaflet-left .leaflet-control {
                 transform: scale(0.85);
-                transform-origin: bottom left;
-            }
-        }
-        @media (max-width: 768px) {
-            /* Scale them down even more for very small screens/mobile */
-            .leaflet-bottom.leaflet-left .leaflet-control {
-                transform: scale(0.70);
                 transform-origin: bottom left;
             }
         }
@@ -761,7 +745,7 @@ def Page():
         m.layout.height = "600px"
         m.layout.width = "100%"
         m.add_control(FullScreenControl())
-        m.lite_mode = True
+        m.lite_mode =False
         m.add_basemap(state.basemap.value)
         return m
 
@@ -839,7 +823,7 @@ def Page():
                                 with solara.v.Html(tag="div", style_="display: flex; flex-wrap: wrap; align-items: center; gap: 5px;"):
                                         solara.Text("Tip: To check/uncheck layers and adjust transparency, use the Layers button")
                                         solara.v.Icon(children=["mdi-layers-outline"])
-                        with solara.v.Html(tag="div", style_="position: relative; z-index: 1; height: 600px; width: 100%; overflow: hidden; margin-bottom: 20px; border-radius: 4px;"):
+                        with solara.v.Html(tag="div", style_="position: relative; z-index: 1; height: 600px; width: 100%; overflow: visible; margin-bottom: 20px; border-radius: 4px;"):
                             solara.display(m)
 
                     # A subtle horizontal divider to separate map from text
