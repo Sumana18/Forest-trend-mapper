@@ -736,7 +736,7 @@ def Page():
 
     # Main Dashboard Content
     with solara.v.Html(tag="div", style_="margin-top: -60px;"):
-        with solara.Columns([1,2,1.5]):
+        with solara.Columns([1,2,2]):
             with solara.Column():
             
                 TrendMapperUI(m)
