@@ -680,6 +680,10 @@ def Page():
     state = solara.use_memo(lambda: Sessionstate(), [])
 
     solara.Style("""
+
+        body {
+                zoom: 0.85; 
+            }
         /* Keep Map controls above the base layer */
         .leaflet-container {
             z-index: 1 !important;
