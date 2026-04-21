@@ -428,19 +428,19 @@ def TrendMapperUI(m,state):
     
         solara.Markdown("Draw an ROI and select your parameters below:")
 
-        with solara.Row():
+        with solara.Row(style={"flex-wrap": "wrap", "gap": "10px"}):
             solara.InputInt("Start Year",value = state.start_year)
             solara.InputInt("End Year",value = state.end_year)
 
-        with solara.Row():
+        with solara.Row(style={"flex-wrap": "wrap", "gap": "10px"}):
             solara.Select("Map Index", value = state.map_index, values = ["NDVI", "NBR", "NDMI"])
             solara.Select("Composite", value = state.reducer, values = ["mean", "median", "max"])
 
         
         solara.Checkbox(label="Apply Significance Masking (p ≤ 0.05)", value=state.apply_sig_mask)
         
-        with solara.Row(style={"align-items": "center", "margin-bottom": "15px"}):
-            solara.Text("Fire Overlays:", style={"font-weight": "regular", "margin-right": "15px"})
+        with solara.Row(style={"align-items": "center", "margin-bottom": "15px", "flex-wrap": "wrap", "gap": "10px"}):
+            solara.Text("Fire Overlays:", style={"font-weight": "regular", "margin-right": "5px"})
             solara.Checkbox(label="MTBS (USA)", value=state.show_mtbs)
             solara.Checkbox(label="AK History (Alaska)", value=state.show_ak_fire)
 
@@ -677,10 +677,12 @@ def Page():
     state = solara.use_memo(lambda: Sessionstate(), [])
 
     solara.Style("""
+        /* Keep Map controls above the base layer */
         .leaflet-container {
             z-index: 1 !important;
         }
-        /* Prevents Hugging Face iframes from hiding legend text */
+        
+        /* Prevent Hugging Face iframes from hiding elements */
         .leaflet-control {
             max-width: none !important;
             overflow: visible !important;
@@ -689,9 +691,25 @@ def Page():
             overflow: visible !important;
         }
         
-        /* NEW: Plotly Autoscaling Fix */
+        /* Force Plotly containers to fill exactly their available width */
         .js-plotly-plot, .plot-container, .svg-container {
             width: 100% !important;
+        }
+        
+        /* NEW: Media Query for smaller screens (Laptops, Tablets, Phones) */
+        @media (max-width: 1200px) {
+            /* Scale down Leaflet legends so they don't get pushed off screen */
+            .leaflet-bottom.leaflet-left .leaflet-control {
+                transform: scale(0.85);
+                transform-origin: bottom left;
+            }
+        }
+        @media (max-width: 768px) {
+            /* Scale them down even more for very small screens/mobile */
+            .leaflet-bottom.leaflet-left .leaflet-control {
+                transform: scale(0.70);
+                transform-origin: bottom left;
+            }
         }
     """)
     # This hidden tool syncs the entire app's CSS (Sidebar, Cards, etc.)
@@ -713,11 +731,11 @@ def Page():
             solara.v.Html(tag="div", style_="flex: 1;")
             
             # Column B: Centered Title
-            with solara.v.Html(tag="div", style_="flex: 1; text-align: center;"):
-                solara.Text("Forest Trend Mapper", style={"font-size": "1.5rem", "font-weight": "bold", "white-space": "nowrap"})
+            with solara.v.Html(tag="div", style_="flex: 1; text-align: center; min-width: 150px;"):
+                solara.Text("Forest Trend Mapper", style={"font-size": "1.5rem", "font-weight": "bold"})
             
             # Column C: Right-Aligned Switch
-            with solara.v.Html(tag="div", style_="flex: 1; display: flex; justify-content: flex-end; align-items: center; padding-right: 15px; margin-top: 20px;"):
+            with solara.v.Html(tag="div", style_="flex: 1; display: flex; justify-content: flex-end; align-items: center; padding-right: 15px; margin-top: 20px; flex-wrap: wrap;"):
                 solara.Switch(label="Dark Mode", value=state.dark_mode)
 
     solara.Title("Forest Trend Mapper")
@@ -754,7 +772,7 @@ def Page():
 
     # Main Dashboard Content
     with solara.v.Html(tag="div", style_="margin-top: -60px;"):
-        with solara.Columns([1,2,2]):
+        with solara.Columns([1,2,1.5]):
             with solara.Column():
             
                 TrendMapperUI(m,state)
@@ -784,7 +802,8 @@ def Page():
                     with solara.v.Html(tag="div", style_="position: relative; z-index: 1;"):
                         if state.analysis_complete.value:
                             with solara.Success():
-                                with solara.Row(style={"align-items": "center", "gap": "5px"}):
+                                # Changed from a Row to a wrapping div with a gap
+                                with solara.v.Html(tag="div", style_="display: flex; flex-wrap: wrap; align-items: center; gap: 5px;"):
                                         solara.Text("💡 Tip: Use the Layers button")
                                         solara.v.Icon(children=["mdi-layers-outline"])
                                         solara.Text("on the map to check/uncheck layers and adjust transparency.")
