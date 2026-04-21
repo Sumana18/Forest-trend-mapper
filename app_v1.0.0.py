@@ -44,36 +44,36 @@ CLIMATE_BANDS = {
 }
 
 #Reactive state
-class State:
-    start_year = solara.reactive(2000)
-    end_year = solara.reactive(2024)
-    map_index = solara.reactive("NDVI")
-    reducer = solara.reactive("median")
-    apply_sig_mask = solara.reactive(True)
-    show_mtbs = solara.reactive(True)
-    show_ak_fire = solara.reactive(True)
-    climate_var = solara.reactive("Summer Max Temp (°C)")
-    fire_info = solara.reactive(None)
+class Sessionstate:
+    def __init__(self):
+        self.start_year = solara.reactive(2000)
+        self.end_year = solara.reactive(2024)
+        self.map_index = solara.reactive("NDVI")
+        self.reducer = solara.reactive("median")
+        self.apply_sig_mask = solara.reactive(True)
+        self.show_mtbs = solara.reactive(True)
+        self.show_ak_fire = solara.reactive(True)
+        self.climate_var = solara.reactive("Summer Max Temp (°C)")
+        self.fire_info = solara.reactive(None)
 
-    dark_mode = solara.reactive(False)
-    last_point = solara.reactive(None)
-    annual_col = solara.reactive(None)
-    is_processing = solara.reactive(False)
-    point_df = solara.reactive(None)
-    is_fetching_point = solara.reactive(False)
-    error_msg = solara.reactive(None)
+        self.dark_mode = solara.reactive(False)
+        self.last_point = solara.reactive(None)
+        self.annual_col = solara.reactive(None)
+        self.is_processing = solara.reactive(False)
+        self.point_df = solara.reactive(None)
+        self.is_fetching_point = solara.reactive(False)
+        self.error_msg = solara.reactive(None)
 
-    tau_img = solara.reactive(None)
-    slope_img = solara.reactive(None)
-    sig_mask = solara.reactive(None)
-    current_roi = solara.reactive(None)
-    
-    download_urls = solara.reactive({})
-    is_generating_urls = solara.reactive(False)
-    show_info_modal = solara.reactive(False)
-    show_map_help = solara.reactive(False)
-    analysis_complete = solara.reactive(False)
-
+        self.tau_img = solara.reactive(None)
+        self.slope_img = solara.reactive(None)
+        self.sig_mask = solara.reactive(None)
+        self.current_roi = solara.reactive(None)
+        
+        self.download_urls = solara.reactive({})
+        self.is_generating_urls = solara.reactive(False)
+        self.show_info_modal = solara.reactive(False)
+        self.show_map_help = solara.reactive(False)
+        self.analysis_complete = solara.reactive(False)
 
 #GEE functions
 
@@ -181,16 +181,16 @@ def get_annual_composites(col, roi, start_year, end_year, reducer_type):
 
     return ee.ImageCollection.fromImages(years.map(create_annual))
 
-def fetch_point_data(coords):
+def fetch_point_data(coords,state):
     
-    State.last_point.value = coords
-    State.is_fetching_point.value = True
-    State.point_df.value = None
-    State.fire_info.value = None
+    state.last_point.value = coords
+    state.is_fetching_point.value = True
+    state.point_df.value = None
+    state.fire_info.value = None
 
     def worker():
         try:
-            if State.annual_col.value is None:
+            if state.annual_col.value is None:
                 return
             
             # Leaflet clicks return [lat, lon], EE expects [lon, lat]
@@ -210,7 +210,7 @@ def fetch_point_data(coords):
                     year = str(pd.to_datetime(date, unit='ms').year) if date else "Unknown Year"
                     fire_names.append(f"{name} (MTBS, {year})")
                 
-                # 2. Check AK Fire History (State dataset)
+                # 2. Check AK Fire History (state dataset)
                 ak_fires = ee.FeatureCollection("projects/ee-ssahoo2/assets/AK_fire_history")
                 ak_intersect = ak_fires.filterBounds(geom).select(['NAME', 'FIREYEAR'], retainGeometry=False).getInfo().get('features', [])
                 
@@ -224,16 +224,26 @@ def fetch_point_data(coords):
                 if fire_names:
                     # Remove duplicates but preserve order roughly
                     unique_fires = list(dict.fromkeys(fire_names))
-                    State.fire_info.value = " | ".join(unique_fires)
+                    state.fire_info.value = " | ".join(unique_fires)
                 else:
-                    State.fire_info.value = None
+                    state.fire_info.value = None
                     
             except Exception as e:
                 print(f"Fire check failed: {e}")
             
             # Request all relevant bands in a single call
             bands_to_fetch = ['year', 'NDVI', 'NBR', 'NDMI'] + list(CLIMATE_BANDS.values())
-            data = State.annual_col.value.select(bands_to_fetch).getRegion(geom, 30).getInfo()
+            try:
+                # We limit the scale slightly or just ensure it is captured safely
+                data = state.annual_col.value.select(bands_to_fetch).getRegion(geom, 30).getInfo()
+            except Exception as gee_error:
+                print(f"GEE getInfo failed: {gee_error}")
+                state.error_msg.value = "The time-series data at this point is too large to load. Try a different location."
+                return # Stop processing to prevent a crash
+            
+            if not data or len(data) <= 1:
+                state.error_msg.value = "No data found at this location."
+                return
             
             # Convert to DataFrame and drop the EE metadata columns
             df = pd.DataFrame(data[1:], columns=data[0])
@@ -244,39 +254,40 @@ def fetch_point_data(coords):
                     df[col] = pd.to_numeric(df[col], errors='coerce')
             
             # Push the completed dataframe to state
-            State.point_df.value = df
+            state.point_df.value = df
             
         except Exception as e:
             print(f"Error fetching point data: {e}")
+            state.error_msg.value = "An unexpected error occurred while processing the point."
         finally:
-            State.is_fetching_point.value = False
+            state.is_fetching_point.value = False
 
     # Start the background thread so the Solara UI doesn't freeze
     threading.Thread(target=worker).start()
 
 # the function that connects gee code to UI components
-def run_analysis(m):
+def run_analysis(m,state):
     # Clear any previous errors
-    State.error_msg.value = None
+    state.error_msg.value = None
     
     # Get the ROI from the map component
     roi = m.user_roi
     if roi is None:
-        State.error_msg.value = "No ROI found. Please use the draw tools on the map to draw a polygon first."
+        state.error_msg.value = "No ROI found. Please use the draw tools on the map to draw a polygon first."
         return
 
     # Set loading state to trigger the spinner
-    State.is_processing.value = True
+    state.is_processing.value = True
     
     # Create a background worker so the Solara UI doesn't freeze while Earth Engine processes the data
     def worker():
         try:
-            col = get_landsat_jja(roi, State.start_year.value, State.end_year.value)
-            annual_col = get_annual_composites(col, roi, State.start_year.value, State.end_year.value, State.reducer.value)
-            State.annual_col.value = annual_col
+            col = get_landsat_jja(roi, state.start_year.value, state.end_year.value)
+            annual_col = get_annual_composites(col, roi, state.start_year.value, state.end_year.value, state.reducer.value)
+            state.annual_col.value = annual_col
 
             # Trend and Slope Calculation
-            map_idx = State.map_index.value
+            map_idx = state.map_index.value
             xy = annual_col.select(['year', map_idx])
             
             tau = xy.reduce(ee.Reducer.kendallsCorrelation()).select(f"{map_idx}_tau").rename('tau')
@@ -289,12 +300,12 @@ def run_analysis(m):
             
             sig_mask = z_score.gte(1.96)
 
-            # Update State
-            State.tau_img.value = tau
-            State.slope_img.value = slope
-            State.sig_mask.value = sig_mask
-            State.current_roi.value = roi
-            State.download_urls.value = {}
+            # Update state
+            state.tau_img.value = tau
+            state.slope_img.value = slope
+            state.sig_mask.value = sig_mask
+            state.current_roi.value = roi
+            state.download_urls.value = {}
 
             # Update Map Layers safely
             layers_to_remove = ['Kendall τ (All)', 'Sen Slope (All)', 'Significant Tau', 'Historical Fires']
@@ -315,11 +326,11 @@ def run_analysis(m):
             slope_vis = {'min': -0.01, 'max': 0.01, 'palette': SLOPE_PALETTE}
             
             # Add new layers
-            show_base = not State.apply_sig_mask.value
+            show_base = not state.apply_sig_mask.value
             m.add_layer(tau.clip(roi), tau_vis, 'Kendall τ (All)', show_base)
             m.add_layer(slope.clip(roi), slope_vis, 'Sen Slope (All)', False)
             
-            if State.apply_sig_mask.value:
+            if state.apply_sig_mask.value:
                 m.add_layer(tau.updateMask(sig_mask).clip(roi), tau_vis, 'Significant Tau', True)
                 m.add_layer(slope.updateMask(sig_mask).clip(roi), slope_vis, 'Significant Slope', False)
             
@@ -331,37 +342,37 @@ def run_analysis(m):
            
             mtbs = ee.FeatureCollection('USFS/GTAC/MTBS/burned_area_boundaries/v1').filterBounds(roi)
             mtbs_styled = mtbs.style(fillColor="#4d474735", color="#ea1212", width=2)
-            m.add_layer(mtbs_styled, {}, 'MTBS Fire Perimeters', shown=State.show_mtbs.value)
+            m.add_layer(mtbs_styled, {}, 'MTBS Fire Perimeters', shown=state.show_mtbs.value)
 
            
             ak_fire = ee.FeatureCollection("projects/ee-ssahoo2/assets/AK_fire_history").filterBounds(roi)
             ak_styled = ak_fire.style(fillColor="#e600ff1f", color="#a70f95", width=2) 
-            m.add_layer(ak_styled, {}, 'AK Fire History', shown=State.show_ak_fire.value)
+            m.add_layer(ak_styled, {}, 'AK Fire History', shown=state.show_ak_fire.value)
 
 
-            State.analysis_complete.value = True    
-            m.centerObject(roi, 8)
+            state.analysis_complete.value = True    
+            m.centerObject(roi, 7)
             
         except Exception as e:
             # PUSH the error directly to the web page so we can see it!
-            State.error_msg.value = f"Earth Engine Error: {str(e)}"
+            state.error_msg.value = f"Earth Engine Error: {str(e)}"
             print(f"Terminal log: {e}")
 
         finally:
             # Turn off the loading spinner when everything is finished or failed
-            State.is_processing.value = False
+            state.is_processing.value = False
 
     # Start the worker thread
     threading.Thread(target=worker).start()
 
 #UI components
 @solara.component
-def TrendInfoModal():
+def TrendInfoModal(state):
     # Only renders the dialog if the reactive state is True
-    if State.show_info_modal.value:
+    if state.show_info_modal.value:
         with solara.v.Dialog(
             v_model=True, 
-            on_v_model=lambda x: State.show_info_modal.set(False), 
+            on_v_model=lambda x: state.show_info_modal.set(False), 
             width="900px",
             persistent=False
         ):
@@ -398,9 +409,9 @@ def TrendInfoModal():
                 solara.HTML(tag="hr", style="margin: 20px 0; border-top: 1px solid #ddd;")
                 
                 with solara.Row(justify="end"):
-                    solara.Button("Got it", on_click=lambda: State.show_info_modal.set(False), color="primary")
+                    solara.Button("Got it", on_click=lambda: state.show_info_modal.set(False), color="primary")
 @solara.component
-def TrendMapperUI(m):
+def TrendMapperUI(m,state):
     with solara.Card(
         title="", # We'll build a custom title row below
         style={"min-height": "400px", "margin": "10px"}
@@ -410,7 +421,7 @@ def TrendMapperUI(m):
             solara.Text("Map Trends", style={"font-size": "24px", "font-weight": "bold", "color": "#2fa4da"})
             solara.Button(
                 icon_name="mdi-information-outline", 
-                on_click=lambda: State.show_info_modal.set(True),
+                on_click=lambda: state.show_info_modal.set(True),
                 text=True, # Makes it look like just an icon
                 color="primary"
             )
@@ -418,51 +429,51 @@ def TrendMapperUI(m):
         solara.Markdown("Draw an ROI and select your parameters below:")
 
         with solara.Row():
-            solara.InputInt("Start Year",value = State.start_year)
-            solara.InputInt("End Year",value = State.end_year)
+            solara.InputInt("Start Year",value = state.start_year)
+            solara.InputInt("End Year",value = state.end_year)
 
         with solara.Row():
-            solara.Select("Map Index", value = State.map_index, values = ["NDVI", "NBR", "NDMI"])
-            solara.Select("Composite", value = State.reducer, values = ["mean", "median", "max"])
+            solara.Select("Map Index", value = state.map_index, values = ["NDVI", "NBR", "NDMI"])
+            solara.Select("Composite", value = state.reducer, values = ["mean", "median", "max"])
 
         
-        solara.Checkbox(label="Apply Significance Masking (p ≤ 0.05)", value=State.apply_sig_mask)
+        solara.Checkbox(label="Apply Significance Masking (p ≤ 0.05)", value=state.apply_sig_mask)
         
         with solara.Row(style={"align-items": "center", "margin-bottom": "15px"}):
             solara.Text("Fire Overlays:", style={"font-weight": "regular", "margin-right": "15px"})
-            solara.Checkbox(label="MTBS (USA)", value=State.show_mtbs)
-            solara.Checkbox(label="AK History (Alaska)", value=State.show_ak_fire)
+            solara.Checkbox(label="MTBS (USA)", value=state.show_mtbs)
+            solara.Checkbox(label="AK History (Alaska)", value=state.show_ak_fire)
 
         # Show the error message if one exists
-        if State.error_msg.value:
-            solara.Error(State.error_msg.value)
+        if state.error_msg.value:
+            solara.Error(state.error_msg.value)
 
         # Disable button while processing to prevent duplicate EE requests
         solara.Button(
             "Calculate Trends",
             color = "success",
-            on_click=lambda: run_analysis(m),
-            loading=State.is_processing.value,
-            disabled=State.is_processing.value 
+            on_click=lambda: run_analysis(m,state),
+            loading=state.is_processing.value,
+            disabled=state.is_processing.value
         )
 
 @solara.component
-def TimeSeriesChart():
+def TimeSeriesChart(state):
     # Theme-aware background
-    bg_color = "#1e1e1e" if State.dark_mode.value else "#ffffff"
-    template = "plotly_dark" if State.dark_mode.value else "plotly_white"
+    bg_color = "#1e1e1e" if state.dark_mode.value else "#ffffff"
+    template = "plotly_dark" if state.dark_mode.value else "plotly_white"
 
     with solara.Card(style={"background-color": bg_color, "margin-bottom": "20px"}):
         solara.Text("Time-series Plots", style={"font-size": "24px", "font-weight": "bold", "color": "#2fa4da"})
-        if State.is_fetching_point.value:
+        if state.is_fetching_point.value:
             return solara.Info("Fetching time series data from Earth Engine...", icon="mdi-cloud-download")
         
-        df = State.point_df.value
+        df = state.point_df.value
         if df is None or df.empty:
             return solara.Info("Click a point on the map after running analysis to view time-series plots.")
     
-        if State.fire_info.value:
-            solara.Markdown(f"**Location History:** {State.fire_info.value}", style={"color": "#ff5252", "font-weight": "bold"})
+        if state.fire_info.value:
+            solara.Markdown(f"**Location History:** {state.fire_info.value}", style={"color": "#ff5252", "font-weight": "bold"})
         
         fig = px.line(df, x="year", y=["NDVI", "NBR", "NDMI"], title="Spectral Trends", template=template)
         
@@ -493,11 +504,11 @@ def TimeSeriesChart():
         solara.Markdown("### Climate Correlation")
 
         with solara.Row():
-            solara.Select("Vegetation Index", value=State.map_index, values=["NDVI", "NBR", "NDMI"])
-            solara.Select("Climate Variable", value=State.climate_var, values=list(CLIMATE_BANDS.keys()))
+            solara.Select("Vegetation Index", value=state.map_index, values=["NDVI", "NBR", "NDMI"])
+            solara.Select("Climate Variable", value=state.climate_var, values=list(CLIMATE_BANDS.keys()))
 
-        c_band = CLIMATE_BANDS[State.climate_var.value]
-        v_idx = State.map_index.value
+        c_band = CLIMATE_BANDS[state.climate_var.value]
+        v_idx = state.map_index.value
         
         if c_band not in df.columns or v_idx not in df.columns:
             return solara.Error("Selected data not available at this point.")
@@ -509,11 +520,11 @@ def TimeSeriesChart():
 
         fig_clim.update_layout(
             autosize = True,
-            title=f"{v_idx} vs {State.climate_var.value}",
+            title=f"{v_idx} vs {state.climate_var.value}",
             font=dict(family="Roboto, Helvetica, Arial, sans-serif", size=12),
             xaxis =dict(showgrid=False, automargin=True, autorange=True),
             yaxis=dict(title=v_idx, title_font=dict(color="#4CAF50"), tickfont=dict(color="#4CAF50"),showgrid=True, automargin=True, autorange=True),
-            yaxis2=dict(title=State.climate_var.value, overlaying="y", side="right", title_font=dict(color="#F44336"), tickfont=dict(color="#F44336"),showgrid=True, tickmode="sync",automargin=True, autorange=True),
+            yaxis2=dict(title=state.climate_var.value, overlaying="y", side="right", title_font=dict(color="#F44336"), tickfont=dict(color="#F44336"),showgrid=True, tickmode="sync",automargin=True, autorange=True),
             legend=dict(
                 orientation="h",        
                 yanchor="top",
@@ -531,7 +542,7 @@ def TimeSeriesChart():
     
         solara.HTML(tag="hr", style="margin: 20px 0; border: 0; border-top: 1px solid #ddd;")
 
-        DataExport()
+        DataExport(state)
         solara.HTML(tag="hr", style="margin: 20px 0; border: 0; border-top: 1px solid #ddd;")
                 
         solara.Text("Data Sources", style={"font-size": "18px", "font-weight": "bold", "margin-bottom": "10px", "display": "block"})
@@ -542,20 +553,20 @@ def TimeSeriesChart():
         ''')
         
 @solara.component
-def MapDownloader():
+def MapDownloader(state):
     # Only show if an analysis has actually been run
-    if State.tau_img.value is None or State.current_roi.value is None:
+    if state.tau_img.value is None or state.current_roi.value is None:
         return solara.Text("")
 
     def generate_links():
-        State.is_generating_urls.value = True
+        state.is_generating_urls.value = True
         
         def worker():
             try:
-                roi = State.current_roi.value
-                tau = State.tau_img.value
-                slope = State.slope_img.value
-                mask = State.sig_mask.value
+                roi = state.current_roi.value
+                tau = state.tau_img.value
+                slope = state.slope_img.value
+                mask = state.sig_mask.value
                 
                 # Apply the significance mask
                 sig_tau = tau.updateMask(mask)
@@ -575,42 +586,42 @@ def MapDownloader():
                 # Fetch URLs from Earth Engine
                 urls['Trend Map (Kendall τ)'] = get_url(tau)
                 urls['Slope Map (Sen Slope)'] = get_url(slope)
-                if State.apply_sig_mask.value:
+                if state.apply_sig_mask.value:
                     urls['Significant Trend Map'] = get_url(sig_tau)
                     urls['Significant Slope Map'] = get_url(sig_slope)
                 
-                State.download_urls.value = urls
+                state.download_urls.value = urls
             except Exception as e:
                 print(f"URL generation failed: {e}")
-                State.error_msg.value = "Failed to generate maps. The ROI might be too large for direct download."
+                state.error_msg.value = "Failed to generate maps. The ROI might be too large for direct download."
             finally:
-                State.is_generating_urls.value = False
+                state.is_generating_urls.value = False
 
         # Run in background to keep UI responsive
         threading.Thread(target=worker).start()
 
     with solara.Card(style={"margin": "10px"}):
         solara.Text("Export Map Layers", style={"font-size": "24px", "font-weight": "bold", "color": "#2fa4da"})
-        if not State.download_urls.value:
+        if not state.download_urls.value:
             solara.Markdown("Generate GeoTIFFs clipped to your ROI for use in QGIS/ArcGIS.")
             solara.Button(
                 "Generate Download Links", 
                 color="primary", 
                 on_click=generate_links, 
-                loading=State.is_generating_urls.value, 
+                loading=state.is_generating_urls.value, 
                 icon_name="mdi-link"
             )
             solara.Info("Note: Direct downloads fail if the region is too massive (>32MB). Keep ROIs reasonably sized.")
         else:
             solara.Success("Files ready! Click below to download:")
             # Display the generated URLs as clickable links
-            for name, url in State.download_urls.value.items():
+            for name, url in state.download_urls.value.items():
                 if url:
                     solara.Markdown(f"[{name}]({url})")
 
 @solara.component
-def DataExport():
-    df = State.point_df.value
+def DataExport(state):
+    df = state.point_df.value
     
     # Only show the download button if we actually have data
     if df is not None and not df.empty:
@@ -628,11 +639,11 @@ def DataExport():
             )
 
 @solara.component
-def MapHelpModal():
-    if State.show_map_help.value:
+def MapHelpModal(state):
+    if state.show_map_help.value:
         with solara.v.Dialog(
             v_model=True, 
-            on_v_model=lambda x: State.show_map_help.set(False), 
+            on_v_model=lambda x: state.show_map_help.set(False), 
             width="650px"
         ):
             with solara.v.Card(style={"padding": "45px","z-index": "9999"}):
@@ -660,9 +671,10 @@ def MapHelpModal():
                 solara.HTML(tag="hr", style="margin: 20px 0; border-top: 1px solid #ddd;")
                 
                 with solara.Row(justify="end"):
-                    solara.Button("Got it", on_click=lambda: State.show_map_help.set(False), color="primary")
+                    solara.Button("Got it", on_click=lambda: state.show_map_help.set(False), color="primary")
 @solara.component
 def Page():
+    state = solara.use_memo(lambda: Sessionstate(), [])
 
     solara.Style("""
         .leaflet-container {
@@ -679,12 +691,12 @@ def Page():
     """)
     # This hidden tool syncs the entire app's CSS (Sidebar, Cards, etc.)
     def sync_theme():
-            solara.lab.theme.dark = State.dark_mode.value
+            solara.lab.theme.dark = state.dark_mode.value
             
-    solara.use_effect(sync_theme, [State.dark_mode.value])
+    solara.use_effect(sync_theme, [state.dark_mode.value])
     
-    TrendInfoModal()
-    MapHelpModal()
+    TrendInfoModal(state)
+    MapHelpModal(state)
 
     
     with solara.AppBarTitle():
@@ -701,7 +713,7 @@ def Page():
             
             # Column C: Right-Aligned Switch
             with solara.v.Html(tag="div", style_="flex: 1; display: flex; justify-content: flex-end; align-items: center; padding-right: 15px; margin-top: 20px;"):
-                solara.Switch(label="Dark Mode", value=State.dark_mode)
+                solara.Switch(label="Dark Mode", value=state.dark_mode)
 
     solara.Title("Forest Trend Mapper")
  
@@ -713,6 +725,7 @@ def Page():
             zoom=5,
         )
         m.layout.height = "650px"
+        m.layout.width = "100%"
         m.add_control(FullScreenControl())
         m.lite_mode = True
         return m
@@ -721,17 +734,17 @@ def Page():
 
     # Map Logic Side-Effect (Syncs Basemap and Click Listeners)
     def setup_map():
-        basemap = "CartoDB.DarkMatter" if State.dark_mode.value else "ESRI.WorldStreetMap"
+        basemap = "CartoDB.DarkMatter" if state.dark_mode.value else "ESRI.WorldStreetMap"
         m.add_basemap(basemap)
 
         def handle_click(**k):
             if k.get('type') == 'click':
-                fetch_point_data(k.get('coordinates'))
+                fetch_point_data(k.get('coordinates'),state)
         
         m.on_interaction(handle_click)
         return lambda: m.on_interaction(handle_click, remove=True)
 
-    solara.use_effect(setup_map, [m, State.dark_mode.value])
+    solara.use_effect(setup_map, [m, state.dark_mode.value])
 
 
     # Main Dashboard Content
@@ -739,8 +752,8 @@ def Page():
         with solara.Columns([1,2,2]):
             with solara.Column():
             
-                TrendMapperUI(m)
-                MapDownloader()
+                TrendMapperUI(m,state)
+                MapDownloader(state)
                 # Funding & Acknowledgments Card
                 with solara.Card("Funding & Acknowledgments", style={"margin-top": "0px"}):
                     solara.Markdown(r'''
@@ -757,14 +770,14 @@ def Page():
 
                         solara.Button(
                             icon_name="mdi-information-outline", 
-                            on_click=lambda: State.show_map_help.set(True),
+                            on_click=lambda: state.show_map_help.set(True),
                             text=True, 
                             color="primary"
                         )
                     
                     # The Map Container
                     with solara.v.Html(tag="div", style_="position: relative; z-index: 1;"):
-                        if State.analysis_complete.value:
+                        if state.analysis_complete.value:
                             with solara.Success():
                                 with solara.Row(style={"align-items": "center", "gap": "5px"}):
                                         solara.Text("💡 Tip: Use the Layers button")
@@ -788,5 +801,5 @@ def Page():
                     ''')
 
             
-            with solara.Column():
-                TimeSeriesChart()
+            with solara.VBox():
+                TimeSeriesChart(state)
