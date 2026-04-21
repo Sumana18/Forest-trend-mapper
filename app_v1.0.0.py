@@ -74,6 +74,7 @@ class Sessionstate:
         self.show_info_modal = solara.reactive(False)
         self.show_map_help = solara.reactive(False)
         self.analysis_complete = solara.reactive(False)
+        self.basemap = solara.reactive("ESRI.WorldStreetMap")
 
 #GEE functions
 
@@ -754,6 +755,7 @@ def Page():
         m.layout.width = "100%"
         m.add_control(FullScreenControl())
         m.lite_mode = True
+        m.add_basemap(state.basemap.value)
         return m
 
     m = solara.use_memo(init_map, [])
@@ -761,7 +763,7 @@ def Page():
     # Map Logic Side-Effect (Syncs Basemap and Click Listeners)
     def setup_map():
         basemap = "CartoDB.DarkMatter" if state.dark_mode.value else "ESRI.WorldStreetMap"
-        m.add_basemap(basemap)
+        
 
         def handle_click(**k):
             if k.get('type') == 'click':
@@ -770,12 +772,15 @@ def Page():
         m.on_interaction(handle_click)
         return lambda: m.on_interaction(handle_click, remove=True)
 
-    solara.use_effect(setup_map, [m, state.dark_mode.value])
+    solara.use_effect(setup_map, [m])
 
 
     # Main Dashboard Content
     with solara.v.Html(tag="div", style_="margin-top: -60px;"):
         
+        def handle_basemap_change(new_basemap):
+            state.basemap.set(new_basemap)
+            m.add_basemap(new_basemap)
         # 1. THE FLEX CONTAINER (Replaces solara.Columns)
         with solara.v.Html(tag="div", style_="display: flex; flex-wrap: wrap; gap: 20px; width: 100%; align-items: flex-start;"):
             
@@ -798,12 +803,26 @@ def Page():
                     with solara.Row(justify="space-between", style={"align-items": "center", "margin-bottom": "5px"}):
                         solara.Text("Display Map", style={"font-size":"24px","font-weight":"bold" ,"color": "#2fa4da"})
 
-                        solara.Button(
-                            icon_name="mdi-information-outline", 
-                            on_click=lambda: state.show_map_help.set(True),
-                            text=True, 
-                            color="primary"
-                        )
+                        with solara.Row(style={"align-items": "center", "gap": "10px"}):
+                            
+                            # 1. The inline text label
+                            solara.Text("Select basemap:", style={"font-size": "14px", "font-weight": "bold"}) 
+
+                            # 2. The dropdown (FIX: Passed an empty string as the label!)
+                            solara.Select(
+                                label="", 
+                                value=state.basemap, 
+                                values=["CartoDB.DarkMatter", "ESRI.WorldStreetMap", "HYBRID", "SATELLITE", "TERRAIN"],
+                                on_value=handle_basemap_change, # NEW: Triggers the safe function above!
+                                style={"width": "200px"}
+                            )
+
+                            solara.Button(
+                                icon_name="mdi-information-outline", 
+                                on_click=lambda: state.show_map_help.set(True),
+                                text=True, 
+                                color="primary"
+                            )
                     
                     # The Map Container
                     with solara.v.Html(tag="div", style_="position: relative; z-index: 1;"):
@@ -811,9 +830,8 @@ def Page():
                             with solara.Success():
                                 # Changed from a Row to a wrapping div with a gap
                                 with solara.v.Html(tag="div", style_="display: flex; flex-wrap: wrap; align-items: center; gap: 5px;"):
-                                        solara.Text("💡 Tip: Use the Layers button")
+                                        solara.Text("Tip: To check/uncheck layers and adjust transparency, use the Layers button")
                                         solara.v.Icon(children=["mdi-layers-outline"])
-                                        solara.Text("on the map to check/uncheck layers and adjust transparency.")
                         with solara.v.Html(tag="div", style_="position: relative; z-index: 1; height: 600px; width: 100%; overflow: hidden; margin-bottom: 20px; border-radius: 4px;"):
                             solara.display(m)
 
