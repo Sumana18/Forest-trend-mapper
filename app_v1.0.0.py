@@ -693,6 +693,10 @@ def Page():
         .leaflet-control-container {
             z-index: 1000 !important;
         }
+        /* Ensure the Plotly hover menu (modebar) stays on the very top layer */
+        .plotly .modebar {
+            z-index: 1001 !important;
+        }
 
         /* Keep your existing scaling logic for small screens */
         @media (max-width: 1200px) {
