@@ -49,7 +49,7 @@ CLIMATE_BANDS = {
 class Sessionstate:
     def __init__(self):
         self.start_year = solara.reactive(2000)
-        self.end_year = solara.reactive(2024)
+        self.end_year = solara.reactive(2025)
         self.map_index = solara.reactive("NDVI")
         self.reducer = solara.reactive("median")
         self.apply_sig_mask = solara.reactive(True)
