@@ -293,8 +293,8 @@ def run_analysis(m,state):
             map_idx = state.map_index.value
             xy = annual_col.select(['year', map_idx])
             
-            tau = xy.reduce(ee.Reducer.kendallsCorrelation()).select(f"{map_idx}_tau").rename('tau')
-            slope = xy.reduce(ee.Reducer.sensSlope()).select('slope').rename('slope')
+            tau = xy.reduce(ee.Reducer.kendallsCorrelation(),tileScale=4).select(f"{map_idx}_tau").rename('tau')
+            slope = xy.reduce(ee.Reducer.sensSlope(),tileScale=4).select('slope').rename('slope')
             
             # Significance Masking
             n_img = annual_col.select(map_idx).count()
@@ -318,16 +318,12 @@ def run_analysis(m,state):
                 if getattr(layer, 'name', '') in layers_to_remove:
                     m.remove_layer(layer)
                     
-            # Clear old colorbars
-            try:
-                m.remove_colorbars()
-            except AttributeError:
-                pass 
+
             
             # Set up correct visual parameters dictionaries
             tau_vis = {'min': -1, 'max': 1, 'palette': TAU_PALETTE}
             slope_vis = {'min': -0.01, 'max': 0.01, 'palette': SLOPE_PALETTE}
-            
+
             # Add new layers
             show_base = not state.apply_sig_mask.value
             m.add_layer(tau.clip(roi), tau_vis, 'Kendall τ (All)', show_base)
@@ -337,10 +333,6 @@ def run_analysis(m,state):
                 m.add_layer(tau.updateMask(sig_mask).clip(roi), tau_vis, 'Significant Tau', True)
                 m.add_layer(slope.updateMask(sig_mask).clip(roi), slope_vis, 'Significant Slope', False)
             
-            # Use the safe vis_params syntax for colorbars
-            
-            m.add_colorbar(vis_params=slope_vis, label="Sen Slope", layer_name="Slope Legend", position="bottomleft")
-            m.add_colorbar(vis_params=tau_vis, label="Kendall τ", layer_name="Tau Legend", position="bottomleft")
             
            
             mtbs = ee.FeatureCollection('USFS/GTAC/MTBS/burned_area_boundaries/v1').filterBounds(roi)
@@ -413,6 +405,19 @@ def TrendInfoModal(state):
                 
                 with solara.Row(justify="end"):
                     solara.Button("Got it", on_click=lambda: state.show_info_modal.set(False), color="primary")
+@solara.component
+def ManualLegend(title, palette, v_min, v_max):
+    gradient = f"linear-gradient(to right, {', '.join(palette)})"
+    
+    # Reduced max-width and font sizes for a "smaller" look
+    with solara.Column(style={"margin": "5px", "width": "100%", "max-width": "350px"}):
+        solara.Text(title, style={"font-weight": "bold", "font-size": "13px", "color": "#2fa4da"})
+        solara.v.Html(tag="div", style_=f"height: 10px; width: 100%; background: {gradient}; border-radius: 2px; border: 1px solid #ccc;")
+        with solara.Row(justify="space-between"):
+            solara.Text(f"{v_min}", style={"font-size": "11px"})
+            solara.Text("0", style={"font-size": "11px"})
+            solara.Text(f"{v_max}", style={"font-size": "11px"})
+
 @solara.component
 def TrendMapperUI(m,state):
     with solara.Card(
@@ -683,25 +688,37 @@ def Page():
     state = solara.use_memo(lambda: Sessionstate(), [])
 
     solara.Style("""
-        /* FIX: Allow legends to "float" outside the map container boundaries */
+        /* Keep Map controls above the base layer */
         .leaflet-container {
             z-index: 1 !important;
-            overflow: visible !important; 
         }
         
-        /* FIX: Ensure the legend control is always on top */
-        .leaflet-control-container {
-            z-index: 1000 !important;
+        /* Prevent Hugging Face iframes from hiding elements */
+        .leaflet-control {
+            max-width: none !important;
+            overflow: visible !important;
         }
-        /* Ensure the Plotly hover menu (modebar) stays on the very top layer */
-        .plotly .modebar {
-            z-index: 1001 !important;
+        .widget-html, .widget-html-content {
+            overflow: visible !important;
         }
-
-        /* Keep your existing scaling logic for small screens */
+        
+        /* Force Plotly containers to fill exactly their available width */
+        .js-plotly-plot, .plot-container, .svg-container {
+            width: 100% !important;
+        }
+        
+        /* NEW: Media Query for smaller screens (Laptops, Tablets, Phones) */
         @media (max-width: 1200px) {
+            /* Scale down Leaflet legends so they don't get pushed off screen */
             .leaflet-bottom.leaflet-left .leaflet-control {
                 transform: scale(0.85);
+                transform-origin: bottom left;
+            }
+        }
+        @media (max-width: 768px) {
+            /* Scale them down even more for very small screens/mobile */
+            .leaflet-bottom.leaflet-left .leaflet-control {
+                transform: scale(0.70);
                 transform-origin: bottom left;
             }
         }
@@ -749,7 +766,7 @@ def Page():
         m.layout.height = "600px"
         m.layout.width = "100%"
         m.add_control(FullScreenControl())
-        m.lite_mode =False
+        m.lite_mode = True
         m.add_basemap(state.basemap.value)
         return m
 
@@ -827,8 +844,14 @@ def Page():
                                 with solara.v.Html(tag="div", style_="display: flex; flex-wrap: wrap; align-items: center; gap: 5px;"):
                                         solara.Text("Tip: To check/uncheck layers and adjust transparency, use the Layers button")
                                         solara.v.Icon(children=["mdi-layers-outline"])
-                        with solara.v.Html(tag="div", style_="position: relative; z-index: 1; height: 600px; width: 100%; overflow: visible; margin-bottom: 20px; border-radius: 4px;"):
+                        with solara.v.Html(tag="div", style_="position: relative; z-index: 1; height: 600px; width: 100%; overflow: hidden; margin-bottom: 20px; border-radius: 4px;"):
                             solara.display(m)
+    
+                        if state.analysis_complete.value:
+                            with solara.v.Html(tag="div", style_="padding: 10px; background-color: rgba(128,128,128,0.05); border-radius: 8px;"):
+                                with solara.Row(justify="center", style={"gap": "20px", "flex-wrap": "nowrap"}):
+                                    ManualLegend("Trend (Kendall τ)", TAU_PALETTE, -1, 1)
+                                    ManualLegend(f"Rate of Change ({state.map_index.value}/year)", SLOPE_PALETTE, -0.01, 0.01)
 
                     # A subtle horizontal divider to separate map from text
                     solara.HTML(tag="hr", style="margin: 20px 0 15px 0; border: 0; border-top: 1px solid #444;")
