@@ -293,8 +293,8 @@ def run_analysis(m,state):
             map_idx = state.map_index.value
             xy = annual_col.select(['year', map_idx])
             
-            tau = xy.reduce(ee.Reducer.kendallsCorrelation(),tileScale=4).select(f"{map_idx}_tau").rename('tau')
-            slope = xy.reduce(ee.Reducer.sensSlope(),tileScale=4).select('slope').rename('slope')
+            tau = xy.reduce(ee.Reducer.kendallsCorrelation()).select(f"{map_idx}_tau").rename('tau')
+            slope = xy.reduce(ee.Reducer.sensSlope()).select('slope').rename('slope')
             
             # Significance Masking
             n_img = annual_col.select(map_idx).count()
