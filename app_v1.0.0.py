@@ -869,7 +869,7 @@ def Page():
                         if state.analysis_complete.value:
                             with solara.Success():
                                 with solara.v.Html(tag="div", style_="display: flex; flex-wrap: wrap; align-items: center; gap: 5px;"):
-                                        solara.Text("Tip: To check/uncheck layers and adjust transparency, use the Layers button")
+                                        solara.Text("To check/uncheck layers and adjust transparency, use the Layers button")
                                         solara.v.Icon(children=["mdi-layers-outline"])
                         
                         with solara.v.Html(tag="div", style_="position: relative; z-index: 1; height: 380px; width: 100%; overflow: hidden; margin-bottom: 20px; border-radius: 4px;"):
@@ -885,7 +885,7 @@ def Page():
                 with solara.Card(style={"margin-top": "10px"}):
                     solara.Text("Links & References", style={"font-size": "20px", "font-weight": "bold", "margin-bottom": "15px", "display": "block"})
                     solara.Markdown(r'''
-                    [Source Code (GitHub)](https://github.com/Sumana18/Forest-trend-mapper) | [Original Paper (MDPI)](https://www.mdpi.com/1999-4907/16/5/777) | [Feedback Form](https://forms.gle/23woKHYHZbKMySNn8)
+                    [Source Code (GitHub)](https://github.com/Sumana18/Forest-trend-mapper) | [Original Paper (MDPI)](https://www.mdpi.com/1999-4907/16/5/777)
                     
                     **To cite the application:**
                                     
