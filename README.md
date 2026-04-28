@@ -10,6 +10,7 @@ license: mit
 
 # Forest Trend Mapper
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19860349.svg)](https://doi.org/10.5281/zenodo.19860349)
+
 This is an interactive web application built using Python (Solara), Geemap, and Google Earth Engine. It is designed to visualize vegetation trends and the impact of climate and fire history on vegetation dynamics across the Interior Alaska boreal forest. 
 
 🚀 **[Access the Live Application Here](https://sumanasahoo-forest-trend-mapper.hf.space/)**
