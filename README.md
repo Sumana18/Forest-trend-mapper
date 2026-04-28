@@ -28,4 +28,4 @@ If you use this application or find the related research helpful, please cite as
 > Sahoo, S., et al. (2025). Interplay of Topography, Fire History, and Climate on Interior Alaska Boreal Forest Vegetation Dynamics. *Forests*, 16(5), 777. https://doi.org/10.3390/f16050777
 
 **Software:**
-> Sahoo, S. (2026). Forest Trend Mapper (v1.0.0). Zenodo. https://doi.org/10.5281/zenodo.19860349
+> 
