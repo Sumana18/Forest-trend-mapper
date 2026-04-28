@@ -871,7 +871,7 @@ def Page():
                         if state.analysis_complete.value:
                             with solara.Success():
                                 with solara.v.Html(tag="div", style_="display: flex; flex-wrap: wrap; align-items: center; gap: 5px;"):
-                                        solara.Text("Check/uncheck layers and adjust transparency using the Layers button")
+                                        solara.Text("Check/uncheck layers & adjust transparency using Layers button")
                                         solara.v.Icon(children=["mdi-layers-outline"])
                         
                         with solara.v.Html(tag="div", style_="position: relative; z-index: 1; height: 380px; width: 100%; overflow: hidden; margin-bottom: 20px; border-radius: 4px;"):
