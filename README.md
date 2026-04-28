@@ -17,7 +17,7 @@ This is an interactive web application built using Python (Solara), Geemap, and 
 
 ## Key Features
 * **Interactive Spatial Analysis:** Draw a Region of Interest (ROI) directly on the map, set custom year ranges, and calculate vegetation trends such as the Kendall τ and Slope (rates of change).
-* **Comprehensive Data Integration:** The tool synthesizes multiple robust environmental data sources, including TerraClimate for meteorological data, MTBS (Monitoring Trends in Burn Severity) for US fire perimeters, and AICC Alaska Fire History shapefiles.
+* **Comprehensive Data Integration:** The tool can access multiple robust environmental data sources, including TerraClimate for meteorological data, MTBS (Monitoring Trends in Burn Severity) for US fire perimeters, and AICC Alaska Fire History shapefiles.
 * **Time-Series Visualization:** By clicking on specific points on the map, users can generate time-series plots that track spectral indices (such as NDVI, NBR, and NDMI) and correlate them with climate variables (like Summer Max Temperature).
 * **Data Export:** Researchers can easily download point-specific time-series data as a CSV for further offline analysis.
 
