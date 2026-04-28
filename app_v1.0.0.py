@@ -890,6 +890,7 @@ def Page():
                     [Source Code (GitHub)](https://github.com/Sumana18/Forest-trend-mapper) | [Original Paper (MDPI)](https://www.mdpi.com/1999-4907/16/5/777)
                     
                     * **Paper:** Sahoo, S., et al. (2025). Interplay of Topography, Fire History, and Climate on Interior Alaska Boreal Forest Vegetation Dynamics. *Forests*, 16(5), 777.
+                    * **Software:** Sahoo, S. (2026). Forest Trend Mapper (v1.0.0). Zenodo. https://doi.org/10.5281/zenodo.19860349
                     ''')
                 
 
