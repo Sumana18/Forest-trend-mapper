@@ -22,6 +22,9 @@ This is an interactive web application built using Python (Solara), Geemap, and 
 * **Data Export:** Researchers can easily download point-specific time-series data as a CSV for further offline analysis.
 
 ## Citation
-If you use this application or find the related research helpful, please cite the application and foundational paper as follows:
+If you use this application or find the related research helpful, please cite as follows:
+**Paper:**
+> Sahoo, S., et al. (2025). Interplay of Topography, Fire History, and Climate on Interior Alaska Boreal Forest Vegetation Dynamics. *Forests*, 16(5), 777. https://doi.org/10.3390/f16050777
+
+**Software:**
 > Sahoo, S. (2026). Forest Trend Mapper (v1.0.0). Zenodo. https://doi.org/10.5281/zenodo.19860349
-> Sahoo, S., et al. (2025). Interplay of Topography, Fire History, and Climate on Interior Alaska Boreal Forest Vegetation Dynamics. *Forests*, 16(5), 777.
