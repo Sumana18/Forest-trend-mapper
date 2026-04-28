@@ -352,6 +352,8 @@ def run_analysis(m,state):
 
             state.analysis_complete.value = True    
             m.centerObject(roi, 8)
+
+            m.draw_control.clear()
             
         except Exception as e:
             # PUSH the error directly to the web page so we can see it!
