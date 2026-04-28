@@ -147,7 +147,7 @@ def get_annual_composites(col, roi, start_year, end_year, reducer_type):
 
         # Landsat Summer Composite
         yc = col.filter(ee.Filter.calendarRange(y, y, 'year')).select(['NDVI', 'NBR', 'NDMI'])
-        empty = ee.Image([0, 0, 0]).rename(['NDVI', 'NBR', 'NDMI']).updateMask(ee.Image(0))
+        empty_veg = ee.Image(0).selfMask().select([0,0,0], ['NDVI', 'NBR', 'NDMI'])
         
         # Handling the reducer type (median vs max)
         if reducer_type == 'median':
@@ -160,22 +160,27 @@ def get_annual_composites(col, roi, start_year, end_year, reducer_type):
         veg_comp = ee.Image(ee.Algorithms.If(
             yc.size().gt(0), 
             reduced_yc,
-            empty
+            empty_veg
         )).rename(['NDVI', 'NBR', 'NDMI']).clip(roi)
 
         # Climate Bands
         y_clim = climate_col.filter(ee.Filter.calendarRange(y, y, 'year'))
-        temp = y_clim.filter(ee.Filter.calendarRange(6, 8, 'month')).select('tmmx').mean().multiply(0.1).rename('Temp')
-        precip = y_clim.filter(ee.Filter.calendarRange(6, 8, 'month')).select('pr').sum().rename('Precip')
-        swe = y_clim.filter(ee.Filter.calendarRange(3, 5, 'month')).select('swe').mean().rename('SWE')
-        soil = y_clim.filter(ee.Filter.calendarRange(6, 8, 'month')).select('soil').mean().multiply(0.1).rename('Soil')
-        
-        # Lagged Climate
         y_clim_lag = climate_col.filter(ee.Filter.calendarRange(y_prev, y_prev, 'year'))
-        temp_lag = y_clim_lag.filter(ee.Filter.calendarRange(6, 8, 'month')).select('tmmx').mean().multiply(0.1).rename('Temp_Lag1')
-        precip_lag = y_clim_lag.filter(ee.Filter.calendarRange(6, 8, 'month')).select('pr').sum().rename('Precip_Lag1')
+        empty_clim = ee.Image(0).selfMask().select([0,0,0,0,0,0], list(CLIMATE_BANDS.values()))
 
-        clim_comp = ee.Image([temp, precip, swe, soil, temp_lag, precip_lag]).clip(roi)
+        def get_clim_bands():
+            temp = y_clim.filter(ee.Filter.calendarRange(6, 8, 'month')).select('tmmx').mean().multiply(0.1).rename('Temp')
+            precip = y_clim.filter(ee.Filter.calendarRange(6, 8, 'month')).select('pr').sum().rename('Precip')
+            swe = y_clim.filter(ee.Filter.calendarRange(3, 5, 'month')).select('swe').mean().rename('SWE')
+            soil = y_clim.filter(ee.Filter.calendarRange(6, 8, 'month')).select('soil').mean().multiply(0.1).rename('Soil')
+
+            temp_lag = y_clim_lag.filter(ee.Filter.calendarRange(6, 8, 'month')).select('tmmx').mean().multiply(0.1).rename('Temp_Lag1')
+            precip_lag = y_clim_lag.filter(ee.Filter.calendarRange(6, 8, 'month')).select('pr').sum().rename('Precip_Lag1')
+            return ee.Image([temp, precip, swe, soil, temp_lag, precip_lag])
+
+        
+
+        clim_comp = ee.Image(ee.Algorithms.If(y_clim.size().gt(0), get_clim_bands(), empty_clim)).clip(roi)
         year_band = ee.Image.constant(y).rename('year').toFloat()
         
         return veg_comp.addBands(clim_comp).addBands(year_band) \
@@ -202,7 +207,7 @@ def fetch_point_data(coords,state):
             try:
                 fire_names = []
                 
-                # 1. Check MTBS (National dataset)
+               # Check MTBS (National dataset)
                 mtbs = ee.FeatureCollection('USFS/GTAC/MTBS/burned_area_boundaries/v1')
                 mtbs_intersect = mtbs.filterBounds(geom).select(['Incid_Name', 'Ig_Date'], retainGeometry=False).getInfo().get('features', [])
                 
@@ -213,7 +218,7 @@ def fetch_point_data(coords,state):
                     year = str(pd.to_datetime(date, unit='ms').year) if date else "Unknown Year"
                     fire_names.append(f"{name} (MTBS, {year})")
                 
-                # 2. Check AK Fire History (state dataset)
+                # Check AK Fire History (state dataset)
                 ak_fires = ee.FeatureCollection("projects/ee-ssahoo2/assets/AK_fire_history")
                 ak_intersect = ak_fires.filterBounds(geom).select(['NAME', 'FIREYEAR'], retainGeometry=False).getInfo().get('features', [])
                 
@@ -410,7 +415,7 @@ def ManualLegend(title, palette, v_min, v_max):
     gradient = f"linear-gradient(to right, {', '.join(palette)})"
     
     # Reduced max-width and font sizes for a "smaller" look
-    with solara.Column(style={"margin": "5px", "width": "100%", "max-width": "350px"}):
+    with solara.Column(style={"margin": "5px", "width": "100%", "max-width": "200px"}):
         solara.Text(title, style={"font-weight": "bold", "font-size": "13px", "color": "#2fa4da"})
         solara.v.Html(tag="div", style_=f"height: 10px; width: 100%; background: {gradient}; border-radius: 2px; border: 1px solid #ccc;")
         with solara.Row(justify="space-between"):
@@ -428,13 +433,16 @@ def TrendMapperUI(m,state):
         with solara.Row(justify="space-between", style={"align-items": "center", "margin-bottom": "20px"}):
             solara.Text("Map Trends", style={"font-size": "24px", "font-weight": "bold", "color": "#2fa4da"})
             solara.Button(
-                icon_name="mdi-information-outline", 
+                label="Help",
+                icon_name="mdi-help-circle-outline",
                 on_click=lambda: state.show_info_modal.set(True),
                 text=True, # Makes it look like just an icon
                 color="primary"
             )
-    
-        solara.Markdown("Draw an ROI and select your parameters below:")
+        
+        solara.Info("Draw a Region of Interest (ROI) on the map and select parameters below.")
+
+        #solara.Markdown("Draw an ROI and select your parameters below:")
 
         with solara.Row(style={"flex-wrap": "wrap", "gap": "10px"}):
             solara.InputInt("Start Year",value = state.start_year)
@@ -497,7 +505,7 @@ def TimeSeriesChart(state):
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
             margin=dict(l=20, r=20, t=40, b=80),
-            height=350,
+            height=200,
             legend=dict(
                 orientation="h",        
                 yanchor="top",
@@ -507,50 +515,61 @@ def TimeSeriesChart(state):
                 title=None              
             ),
         )
-        solara.FigurePlotly(fig,dependencies=[fig])
-
-        solara.HTML(tag="hr", style="margin: 20px 0; border: 0; border-top: 1px solid #ddd;")
-
-            # Climate Correlation Section
-        solara.Markdown("### Climate Correlation")
-
-        with solara.Row():
-            solara.Select("Vegetation Index", value=state.map_index, values=["NDVI", "NBR", "NDMI"])
-            solara.Select("Climate Variable", value=state.climate_var, values=list(CLIMATE_BANDS.keys()))
+       
 
         c_band = CLIMATE_BANDS[state.climate_var.value]
         v_idx = state.map_index.value
+
+        has_climate = False
+        fig_clim = None
         
-        if c_band not in df.columns or v_idx not in df.columns:
-            return solara.Error("Selected data not available at this point.")
+        if not df[c_band].isnull().all() and c_band in df.columns and v_idx in df.columns:
+            has_climate = True
+            fig_clim = go.Figure()
+            fig_clim.add_trace(go.Scatter(x=df['year'], y=df[v_idx], name=v_idx, line=dict(color='#4CAF50', width=2.5)))
+            fig_clim.add_trace(go.Scatter(x=df['year'], y=df[c_band], name="Climate Variable", yaxis="y2", line=dict(color='#F44336', dash='dot')))
 
-        fig_clim = go.Figure()
-        # Using professional green (#4CAF50) and red (#F44336)
-        fig_clim.add_trace(go.Scatter(x=df['year'], y=df[v_idx], name=v_idx, line=dict(color='#4CAF50', width=2.5)))
-        fig_clim.add_trace(go.Scatter(x=df['year'], y=df[c_band], name="Climate Variable", yaxis="y2", line=dict(color='#F44336', dash='dot')))
+            fig_clim.update_layout(
+                autosize = True,
+                title=f"{v_idx} vs {state.climate_var.value}",
+                font=dict(family="Roboto, Helvetica, Arial, sans-serif", size=12),
+                xaxis =dict(showgrid=False, automargin=True, autorange=True),
+                yaxis=dict(title=v_idx, title_font=dict(color="#4CAF50"), tickfont=dict(color="#4CAF50"),showgrid=True, automargin=True, autorange=True),
+                yaxis2=dict(title=state.climate_var.value, overlaying="y", side="right", title_font=dict(color="#F44336"), tickfont=dict(color="#F44336"),showgrid=True, tickmode="sync",automargin=True, autorange=True),
+                legend=dict(
+                    orientation="h",        
+                    yanchor="top",
+                    y=-0.35,               
+                    xanchor="center",
+                    x=0.5
+                ),
+                template=template,
+                height=200,
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                margin=dict(l=20, r=20, t=50, b=80)
+            )
+        with solara.Row(style={"flex-wrap": "wrap", "gap": "20px"}):
+            
+            # LEFT COLUMN: Spectral Chart
+            with solara.v.Html(tag="div", style_="flex: 1; min-width: 250px;"):
+                solara.FigurePlotly(fig, dependencies=[fig])
 
-        fig_clim.update_layout(
-            autosize = True,
-            title=f"{v_idx} vs {state.climate_var.value}",
-            font=dict(family="Roboto, Helvetica, Arial, sans-serif", size=12),
-            xaxis =dict(showgrid=False, automargin=True, autorange=True),
-            yaxis=dict(title=v_idx, title_font=dict(color="#4CAF50"), tickfont=dict(color="#4CAF50"),showgrid=True, automargin=True, autorange=True),
-            yaxis2=dict(title=state.climate_var.value, overlaying="y", side="right", title_font=dict(color="#F44336"), tickfont=dict(color="#F44336"),showgrid=True, tickmode="sync",automargin=True, autorange=True),
-            legend=dict(
-                orientation="h",        
-                yanchor="top",
-                y=-0.35,               
-                xanchor="center",
-                x=0.5
-            ),
-            template=template,
-            height=350,
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            margin=dict(l=20, r=20, t=50, b=80)
-        )
-        solara.FigurePlotly(fig_clim,dependencies=[fig_clim])
-    
+            # RIGHT COLUMN: Climate Selectors + Climate Chart
+            with solara.v.Html(tag="div", style_="flex: 1; min-width: 250px;"):
+                solara.Markdown("### Climate Correlation")
+                
+                with solara.Row():
+                    solara.Select("Vegetation Index", value=state.map_index, values=["NDVI", "NBR", "NDMI"])
+                    solara.Select("Climate Variable", value=state.climate_var, values=list(CLIMATE_BANDS.keys()))
+                
+                if has_climate:
+                    solara.FigurePlotly(fig_clim, dependencies=[fig_clim])
+                elif df[c_band].isnull().all():
+                    solara.Warning(f"Climate data for {state.climate_var.value} is not yet available for the selected years.")
+                else:
+                    solara.Error("Selected data not available at this point.")
+
         solara.HTML(tag="hr", style="margin: 20px 0; border: 0; border-top: 1px solid #ddd;")
 
         DataExport(state)
@@ -637,8 +656,9 @@ def DataExport(state):
     # Only show the download button if we actually have data
     if df is not None and not df.empty:
         # Convert the pandas dataframe to a CSV string
-        csv_data = df.to_csv(index=False)
-        
+        df_export = df.drop(columns=['time', 'id'], errors='ignore')
+        csv_data = df_export.to_csv(index=False)
+
         with solara.Row(style={"align-items": "center", "justify-content": "space-between"}):
             solara.Text("Download point-specific time series data:", style={"font-size": "14px"})
             
@@ -734,20 +754,29 @@ def Page():
 
     
     with solara.AppBarTitle():
-        solara.Text(" ")
+        solara.v.Html(tag="div")
     with solara.AppBar():
         with solara.v.Html(tag="div", style_="display: flex; width: 100%; align-items: center; justify-content: space-between;"):
             
-            # Column A: Left Spacer (flex: 1 ensures it takes exactly 1/3 of the space to balance the right side)
-            solara.v.Html(tag="div", style_="flex: 1;")
-            
-            # Column B: Centered Title
-            with solara.v.Html(tag="div", style_="flex: 1; text-align: center; min-width: 150px;"):
-                solara.Text("Forest Trend Mapper", style={"font-size": "1.5rem", "font-weight": "bold"})
-            
-            # Column C: Right-Aligned Switch
-            with solara.v.Html(tag="div", style_="flex: 1; display: flex; justify-content: flex-end; align-items: center; padding-right: 15px; margin-top: 20px; flex-wrap: wrap;"):
+            # Column A: Left Spacer (Dark Mode)
+            with solara.v.Html(tag="div", style_="flex: 1; display: flex; justify-content: flex-start; align-items: center; padding-left: 15px; margin-top: 22px; flex-wrap: wrap;"):
                 solara.Switch(label="Dark Mode", value=state.dark_mode)
+            
+            # Column B: Centered Title 
+            with solara.v.Html(tag="div", style_="flex: 1; text-align: center; min-width: 150px;"):
+                solara.Text("Forest Trend Mapper", style={"font-size": "1.5rem", "font-weight": "bold", "color": "white"})
+            
+            # Column C: Right-Aligned Button 
+            with solara.v.Html(tag="div", style_="flex: 1; display: flex; justify-content: flex-end; align-items: center; padding-right: 15px;"):
+                solara.Button(
+                    label="Provide Feedback", 
+                    icon_name="mdi-message-draw", 
+                    href="https://forms.gle/23woKHYHZbKMySNn8", 
+                    target="_blank",
+                    text=True, 
+                    color="white", 
+                    style={"font-weight": "bold"}
+                )
 
     solara.Title("Forest Trend Mapper")
  
@@ -793,81 +822,77 @@ def Page():
         def handle_basemap_change(new_basemap):
             state.basemap.set(new_basemap)
             m.add_basemap(new_basemap)
-        # 1. THE FLEX CONTAINER (Replaces solara.Columns)
+       
         with solara.v.Html(tag="div", style_="display: flex; flex-wrap: wrap; gap: 20px; width: 100%; align-items: flex-start;"):
             
-            # 2. COLUMN 1: Controls (Replaces the first solara.Column)
-            # flex: 1 1 300px mimics the "1" in your [1,2,1.5] setup, but ensures it never gets smaller than 300px
-            with solara.v.Html(tag="div", style_="flex: 1 1 300px; min-width: 300px;"):
             
+            with solara.v.Html(tag="div", style_="flex: 1 1 400px; min-width: 280px; max-width: 400px;"):
                 TrendMapperUI(m,state)
                 MapDownloader(state)
-                # Funding & Acknowledgments Card
-                with solara.Card("Funding & Acknowledgments", style={"margin-top": "0px"}):
+
+                with solara.Card("Funding & Acknowledgments", style={"margin-top": "20px"}):
                     solara.Markdown(r'''
                     This research was funded by the **USDA National Institute of Food and Agriculture**, McIntire Stennis project [Accession Number: 1026801]. 
-                    
                     Additional support was received from the **Troth Yeddha' University of Alaska Fairbanks** PhD Fellowship.
                     ''')
-            with solara.v.Html(tag="div", style_="flex: 2.4 1 600px; min-width: 400px;"):
+                    
+         
+            with solara.v.Html(tag="div", style_="flex: 2 1 500px; min-width: 300px;"):
                 with solara.Card(style={"margin-top": "10px", "margin-bottom": "10px"}):
                     # Map Header
-                    with solara.Row(justify="space-between", style={"align-items": "center", "margin-bottom": "5px"}):
+                 
+                    with solara.Row(justify="space-between", style={"align-items": "center", "margin-bottom": "5px", "flex-wrap": "wrap", "gap": "10px"}):
                         solara.Text("Display Map", style={"font-size":"24px","font-weight":"bold" ,"color": "#2fa4da"})
-
-                        with solara.Row(style={"align-items": "center", "gap": "10px"}):
-                            
-                            # 1. The inline text label
+                        
+                        
+                        with solara.Row(style={"align-items": "center", "gap": "10px", "flex-wrap": "wrap"}):
                             solara.Text("Select basemap:", style={"font-size": "14px", "font-weight": "bold"}) 
-
-                            # 2. The dropdown (FIX: Passed an empty string as the label!)
                             solara.Select(
                                 label="", 
                                 value=state.basemap, 
                                 values=["CartoDB.DarkMatter", "ESRI.WorldStreetMap", "HYBRID", "SATELLITE", "TERRAIN"],
-                                on_value=handle_basemap_change, # NEW: Triggers the safe function above!
+                                on_value=handle_basemap_change,
                                 style={"width": "200px"}
                             )
-
+                            # Help Button
                             solara.Button(
-                                icon_name="mdi-information-outline", 
+                                label="Map Help",
+                                icon_name="mdi-help-circle-outline", 
                                 on_click=lambda: state.show_map_help.set(True),
                                 text=True, 
-                                color="primary"
+                                color="primary",
+                                style={"font-weight": "bold"}
                             )
                     
                     # The Map Container
                     with solara.v.Html(tag="div", style_="position: relative; z-index: 1;"):
                         if state.analysis_complete.value:
                             with solara.Success():
-                                # Changed from a Row to a wrapping div with a gap
                                 with solara.v.Html(tag="div", style_="display: flex; flex-wrap: wrap; align-items: center; gap: 5px;"):
                                         solara.Text("Tip: To check/uncheck layers and adjust transparency, use the Layers button")
                                         solara.v.Icon(children=["mdi-layers-outline"])
-                        with solara.v.Html(tag="div", style_="position: relative; z-index: 1; height: 600px; width: 100%; overflow: hidden; margin-bottom: 20px; border-radius: 4px;"):
+                        
+                        with solara.v.Html(tag="div", style_="position: relative; z-index: 1; height: 380px; width: 100%; overflow: hidden; margin-bottom: 20px; border-radius: 4px;"):
                             solara.display(m)
     
                         if state.analysis_complete.value:
                             with solara.v.Html(tag="div", style_="padding: 10px; background-color: rgba(128,128,128,0.05); border-radius: 8px;"):
-                                with solara.Row(justify="center", style={"gap": "20px", "flex-wrap": "nowrap"}):
+                                with solara.Row(justify="center", style={"gap": "20px", "flex-wrap": "wrap"}): # Changed nowrap to wrap
                                     ManualLegend("Trend (Kendall τ)", TAU_PALETTE, -1, 1)
                                     ManualLegend(f"Rate of Change ({state.map_index.value}/year)", SLOPE_PALETTE, -0.01, 0.01)
 
-                    # A subtle horizontal divider to separate map from text
-                    solara.HTML(tag="hr", style="margin: 20px 0 15px 0; border: 0; border-top: 1px solid #444;")
-
-                    # Links & References Section (Zero top gap)
-                    solara.Text("Links & References", style={"font-size": "24px", "font-weight": "bold", "margin-bottom": "15px", "display": "block"})
-                    
+                # Links and Funding Cards
+                with solara.Card(style={"margin-top": "10px"}):
+                    solara.Text("Links & References", style={"font-size": "20px", "font-weight": "bold", "margin-bottom": "15px", "display": "block"})
                     solara.Markdown(r'''
                     [Source Code (GitHub)](https://github.com/Sumana18/Forest-trend-mapper) | [Original Paper (MDPI)](https://www.mdpi.com/1999-4907/16/5/777) | [Feedback Form](https://forms.gle/23woKHYHZbKMySNn8)
                     
-                    To cite the application:
+                    **To cite the application:**
                                     
                     Journal Publication: Sahoo, S., et al. (2025). Interplay of Topography, Fire History, and Climate on Interior Alaska Boreal Forest Vegetation Dynamics. *Forests*, 16(5), 777.
                     ''')
+                
 
-            
-            with solara.v.Html(tag="div", style_="flex: 1.2 1 350px; min-width: 300px;"):
-                with solara.v.Html(tag="div", style_="width: 100%; min-width: 0;"):
-                    TimeSeriesChart(state)
+           
+            with solara.v.Html(tag="div", style_="flex: 1 1 350px; min-width: 280px; max-width: 500px;"):
+                TimeSeriesChart(state)
