@@ -6,6 +6,7 @@ USER user
 ENV PATH="/home/user/.local/bin:$PATH"
 ENV UVICORN_PROXY_HEADERS=1
 ENV FORWARDED_ALLOW_IPS="*"
+ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 COPY --chown=user requirements.txt .
