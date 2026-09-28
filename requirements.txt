@@ -7,5 +7,5 @@ ipyleaflet
 starlette==0.36.3
 numpy<2.0.0
 wsproto>=1.2.0
-uvicorn>=0.34.3
+uvicorn==0.34.3
 websockets==10.4
