@@ -15,4 +15,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY --chown=user . .
 
 EXPOSE 8765
-CMD ["solara", "run", "app_v1.0.0.py", "--host=0.0.0.0", "--port=8765"]
+
+CMD ["python", "-m", "http.server", "8765"]
