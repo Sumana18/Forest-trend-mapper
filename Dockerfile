@@ -1,4 +1,4 @@
-FROM python:3.10
+FROM python:3.11
 
 # Create a user to avoid running as root (Hugging Face requirement)
 RUN useradd -m -u 1000 user
