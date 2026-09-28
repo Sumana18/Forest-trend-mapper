@@ -9,3 +9,5 @@ numpy<2.0.0
 wsproto>=1.2.0
 uvicorn==0.34.3
 websockets==10.4
+ipyvue<2
+ipyvuetify<2
